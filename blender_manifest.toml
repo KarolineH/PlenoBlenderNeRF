@@ -1,0 +1,16 @@
+id = "PlenoBlenderNeRF"
+name = "PlenoBlenderNeRF"
+version = "0.0.1"
+type = "add-on"
+
+tagline = "Create plenoptic videos for dynamic NeRF dataset creation within Blender"
+maintainer = "Karoline Heiwolt <karoline@heiwolt.de>"
+website = "https://github.com/KarolineH/PlenoBlenderNeRF"
+
+schema_version = "1.0.0"
+blender_version_min = "4.2.0"
+# blender_version_max = "5.1.0"
+
+# license conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
+# https://docs.blender.org/manual/en/dev/advanced/extensions/licenses.html
+license = ["SPDX:MIT",]
