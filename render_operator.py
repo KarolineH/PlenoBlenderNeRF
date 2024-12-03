@@ -1,5 +1,3 @@
-
-        # TODO: Make a reset button? Maybe seperate out into two objects (executes), one that sets up the scene, one that does the render. So you can reset and redo without having to wait for render.
         # TODO: Do the render
         # TODO: save and reset
         # TODO: Move functions into sensible order, move some to the helper module
