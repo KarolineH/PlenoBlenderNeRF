@@ -1,5 +1,5 @@
 import bpy
-from . import helper, pleno_ui, pleno_operator
+from . import helper, pleno_ui, scene_prep_operator, reset_operator
 
 # blender info
 bl_info = {
@@ -32,7 +32,7 @@ PROPS = [
     ('plenoblendernerf_version', bpy.props.StringProperty(name='BlenderNeRF Version', default=VERSION) ),
 
     #pleno controllable properties
-    ('dataset_name', bpy.props.StringProperty(name='Name', description='Name of the Pleno dataset : the data will be stored under <save path>/<name>', default='dataset') ),
+    ('dataset_name', bpy.props.StringProperty(name='Dataset Name', description='Name of the Pleno dataset : the data will be stored under <save path>/<name>', default='dataset') ),
     ('sphere_location', bpy.props.FloatVectorProperty(name='Location', description='Center position of the training sphere', unit='LENGTH', update=helper.properties_ui_upd) ),
     ('sphere_rotation', bpy.props.FloatVectorProperty(name='Rotation', description='Rotation of the training sphere', unit='ROTATION', update=helper.properties_ui_upd) ),
     ('sphere_scale', bpy.props.FloatVectorProperty(name='Scale', description='Scale of the training sphere in xyz axes', default=(1.0, 1.0, 1.0), update=helper.properties_ui_upd) ),
@@ -53,7 +53,8 @@ PROPS = [
 # classes to register / unregister
 CLASSES = [
     pleno_ui.PLENO_UI,
-    pleno_operator.PlenopticVideo
+    scene_prep_operator.ScenePrep,
+    reset_operator.ResetScene
 ]
 
 # load addon

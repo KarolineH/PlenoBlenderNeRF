@@ -1,9 +1,35 @@
 import bpy
 import os
+import math
 import shutil
+import json
 from bpy.app.handlers import persistent
 
 SPHERE_NAME = 'PlenoSphere'
+
+def is_power_of_two(x):
+    return math.log2(x).is_integer()
+
+# assert messages
+def asserts(scene):
+    camera = scene.camera
+    dataset_name = scene.dataset_name
+    error_messages = []
+
+    if not camera.data.type == 'PERSP':
+        error_messages.append('Only perspective cameras are supported!')
+    if dataset_name == '':
+        error_messages.append('Dataset name cannot be empty!')
+    if any(x == 0 for x in scene.sphere_scale):
+        error_messages.append('The sampling sphere cannot be flat! Change its scale to be non-zero in all axes.')
+
+    if not scene.nerf and not is_power_of_two(scene.aabb):
+        error_messages.append('AABB scale needs to be a power of two!')
+    if scene.save_path == '':
+        error_messages.append('Save path cannot be empty!')
+    if scene.splats and scene.render.image_settings.file_format != 'PNG':
+        error_messages.append('Gaussian Splatting requires PNG file extensions!')
+    return error_messages
 
 def create_sphere(context):
     scene = context.scene
@@ -29,21 +55,27 @@ def visualize_sphere(self, context):
         else:
             bpy.data.objects[SPHERE_NAME].hide_set(True)
 
-    #     # if empty sphere does not exist, create
-    #     bpy.ops.object.empty_add(type='SPHERE') # non default location, rotation and scale here are sometimes not applied, so we enforce them manually below
-    #     empty = context.active_object
-    #     empty.name = SPHERE_NAME
-    #     empty.location = scene.sphere_location
-    #     empty.rotation_euler = scene.sphere_rotation
-    #     empty.scale = scene.sphere_scale
-    #     empty.empty_display_size = scene.sphere_radius
+# check whether an object is visible in render
+def is_object_visible(obj):
+    if obj.hide_render:
+        return False
 
-    #     scene.sphere_exists = True
+    for collection in obj.users_collection:
+        if collection.hide_render:
+            return False
+    return True
 
-    # elif SPHERE_NAME in scene.objects.keys() and scene.sphere_exists:
-    #     objects = bpy.data.objects
-    #     objects.remove(objects[SPHERE_NAME], do_unlink=True)
-    #     scene.sphere_exists = False
+def save_json(directory, filename, data, indent=4):
+    filepath = os.path.join(directory, filename)
+    with open(filepath, 'w') as file:
+        json.dump(data, file, indent=indent)
+
+        # function from original nerf 360_view.py code for blender
+def listify_matrix(matrix):
+    matrix_list = []
+    for row in matrix:
+        matrix_list.append(list(row))
+    return matrix_list
 
 ## two way property link between sphere and ui (property and handler functions)
 # https://blender.stackexchange.com/questions/261174/2-way-property-link-or-a-filtered-property-display

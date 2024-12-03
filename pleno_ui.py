@@ -31,6 +31,7 @@ class PLENO_UI(bpy.types.Panel):
         layout.separator()
         layout.use_property_split = True
         layout.prop(scene, 'save_path')
+        layout.prop(scene, 'dataset_name')
 
         layout.prop(scene, 'camera')
         layout.prop(scene, 'sphere_location')
@@ -56,4 +57,5 @@ class PLENO_UI(bpy.types.Panel):
         layout.prop(scene, 'pleno_dataset_name')
 
         layout.separator()
-        layout.operator('object.plenoptic_video', text='PLAY PLENO')
+        layout.operator('object.scene_prep', text='SET UP SCENE')
+        layout.operator('object.scene_reset', text='RESET SCENE')

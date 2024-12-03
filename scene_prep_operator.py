@@ -4,8 +4,6 @@ import bpy
 import random
 import mathutils
 import datetime
-import math
-import json
 
 from . import helper
 
@@ -13,36 +11,10 @@ from . import helper
 SPHERE_NAME = 'PlenoSphere'
 TMP_VERTEX_COLORS = 'plenoblendernerf_vertex_colors_tmp'
 
-# camera on sphere operator class
-class PlenopticVideo(bpy.types.Operator):
-    '''Plenoptic Video Operator'''
-    bl_idname = 'object.plenoptic_video'
-    bl_label = 'Plenoptic Video PLENO'
-
-    def is_power_of_two(self, x):
-        return math.log2(x).is_integer()
-
-    # assert messages
-    def asserts(self, scene):
-        camera = scene.camera
-        dataset_name = scene.dataset_name
-        error_messages = []
-
-        if not camera.data.type == 'PERSP':
-            error_messages.append('Only perspective cameras are supported!')
-        if dataset_name == '':
-            error_messages.append('Dataset name cannot be empty!')
-        if any(x == 0 for x in scene.sphere_scale):
-            error_messages.append('The sampling sphere cannot be flat! Change its scale to be non-zero in all axes.')
-
-        if not scene.nerf and not self.is_power_of_two(scene.aabb):
-            error_messages.append('AABB scale needs to be a power of two!')
-        if scene.save_path == '':
-            error_messages.append('Save path cannot be empty!')
-        if scene.splats and scene.render.image_settings.file_format != 'PNG':
-            error_messages.append('Gaussian Splatting requires PNG file extensions!')
-        return error_messages
-    
+class ScenePrep(bpy.types.Operator):
+    '''Plenoptic Video Scene Prep Operator'''
+    bl_idname = 'object.scene_prep'
+    bl_label = 'Plenoptic Video Scene Prep'
 
     # camera intrinsics
     def get_camera_intrinsics(self, scene, camera):
@@ -132,18 +104,7 @@ class PlenopticVideo(bpy.types.Operator):
         logdata['Outwards'] = scene.outwards
         logdata['Dataset Name'] = scene.dataset_name
 
-        self.save_json(directory, filename='log.txt', data=logdata)
-
-    # check whether an object is visible in render
-    def is_object_visible(self, obj):
-        if obj.hide_render:
-            return False
-
-        for collection in obj.users_collection:
-            if collection.hide_render:
-                return False
-
-        return True
+        helper.save_json(directory, filename='log.txt', data=logdata)
 
     # export vertex colors for each visible mesh
     def save_splats_ply(self, scene, directory):
@@ -166,7 +127,7 @@ class PlenopticVideo(bpy.types.Operator):
 
         # select only visible meshes
         for obj in scene.objects:
-            if obj.type == 'MESH' and self.is_object_visible(obj):
+            if obj.type == 'MESH' and helper.is_object_visible(obj):
                 obj.select_set(True)
 
         # save ply file
@@ -174,7 +135,7 @@ class PlenopticVideo(bpy.types.Operator):
 
         # remove temporary vertex colors
         for obj in scene.objects:
-            if obj.type == 'MESH' and self.is_object_visible(obj):
+            if obj.type == 'MESH' and helper.is_object_visible(obj):
                 if obj.data.vertex_colors:
                     obj.data.vertex_colors.remove(obj.data.vertex_colors[TMP_VERTEX_COLORS])
 
@@ -212,11 +173,6 @@ class PlenopticVideo(bpy.types.Operator):
         view_vectors = np.array(scene.sphere_location) - points # view vectors from camera poses to sphere origin
         up= np.array([0, 0, 1]) # define the up vector (world Z-axis)
         return points
-    
-    def save_json(self, directory, filename, data, indent=4):
-        filepath = os.path.join(directory, filename)
-        with open(filepath, 'w') as file:
-            json.dump(data, file, indent=indent)
 
     def prepare_scene(self, context):
         ### Places all the cameras and sets rendering settings
@@ -259,13 +215,6 @@ class PlenopticVideo(bpy.types.Operator):
         bpy.data.objects.remove(bpy.data.objects[template_camera.name], do_unlink=True)
         return cam_handle_record
     
-    # function from original nerf 360_view.py code for blender
-    def listify_matrix(self, matrix):
-        matrix_list = []
-        for row in matrix:
-            matrix_list.append(list(row))
-        return matrix_list
-    
     def get_camera_extrinsics(self, scene, camera_list):
         camera_extr_dict = []
         for camera in camera_list:
@@ -273,7 +222,7 @@ class PlenopticVideo(bpy.types.Operator):
             cam_obj = scene.objects[name]
             cam_data = {
                 'camera_object': cam_obj.name,
-                'transform_matrix': self.listify_matrix(cam_obj.matrix_world)
+                'transform_matrix': helper.listify_matrix(cam_obj.matrix_world)
             }
             camera_extr_dict.append(cam_data)
         return camera_extr_dict
@@ -289,7 +238,7 @@ class PlenopticVideo(bpy.types.Operator):
             return {'FINISHED'}
         
         # if there is an error, print first error message
-        error_messages = self.asserts(scene)
+        error_messages = helper.asserts(scene)
         if len(error_messages) > 0:
            self.report({'ERROR'}, error_messages[0])
            return {'FINISHED'}
@@ -315,38 +264,5 @@ class PlenopticVideo(bpy.types.Operator):
         # other intial properties
         scene.init_sphere_exists = scene.show_sphere
         output_data['cameras'] = self.get_camera_extrinsics(scene, camera_list)
-        self.save_json(output_path, 'transforms.json', output_data)
-
-
-        # TODO: Make a reset button? Maybe seperate out into two objects (executes), one that sets up the scene, one that does the render. So you can reset and redo without having to wait for render.
-        # TODO: Do the render
-        # TODO: save and reset
-        # TODO: Expose the number of frames in GUI and make it apply to the rendering 
-        # TODO: Move functions into sensible order, move some to the helper module
-
-        #     # rendering
-        #     if scene.render_frames:
-        #         output_train = os.path.join(output_path, 'train')
-        #         os.makedirs(output_train, exist_ok=True)
-        #         scene.rendering = (False, False, True)
-        #         scene.frame_end = scene.frame_start + scene.cos_nb_frames - 1 # update end frame
-        #         scene.render.filepath = os.path.join(output_train, '') # training frames path
-        #         bpy.ops.render.render('INVOKE_DEFAULT', animation=True, write_still=True) # render scene
-
-        # # if frames are rendered, the below code is executed by the handler function
-        # if not any(scene.rendering):
-        #     # reset camera settings
-        #     if not scene.init_camera_exists: helper.delete_camera(scene, CAMERA_NAME)
-        #     if not scene.init_sphere_exists:
-        #         objects = bpy.data.objects
-        #         objects.remove(objects[EMPTY_NAME], do_unlink=True)
-        #         scene.show_sphere = False
-        #         scene.sphere_exists = False
-
-        #     scene.camera = scene.init_active_camera
-
-        #     # compress dataset and remove folder (only keep zip)
-        #     shutil.make_archive(output_path, 'zip', output_path) # output filename = output_path
-        #     shutil.rmtree(output_path)
-
+        helper.save_json(output_path, 'transforms.json', output_data)
         return {'FINISHED'}
