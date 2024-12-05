@@ -47,15 +47,9 @@ class PLENO_UI(bpy.types.Panel):
 
         layout.use_property_split = False
         layout.separator()
-        layout.label(text='Preview')
 
         row = layout.row(align=True)
         row.prop(scene, 'show_sphere', toggle=True)
-
-        layout.separator()
-        layout.use_property_split = True
-        layout.prop(scene, 'pleno_dataset_name')
-
-        layout.separator()
         layout.operator('object.scene_prep', text='SET UP SCENE')
         layout.operator('object.scene_reset', text='RESET SCENE')
+        layout.operator('object.renderer', text='RENDER')

@@ -16,71 +16,6 @@ class ScenePrep(bpy.types.Operator):
     bl_idname = 'object.scene_prep'
     bl_label = 'Plenoptic Video Scene Prep'
 
-    # camera intrinsics
-    def get_camera_intrinsics(self, scene, camera):
-        camera_angle_x = camera.data.angle_x
-        camera_angle_y = camera.data.angle_y
-
-        # camera properties
-        f_in_mm = camera.data.lens # focal length in mm
-        scale = scene.render.resolution_percentage / 100
-        width_res_in_px = scene.render.resolution_x * scale # width
-        height_res_in_px = scene.render.resolution_y * scale # height
-        optical_center_x = width_res_in_px / 2
-        optical_center_y = height_res_in_px / 2
-
-        # pixel aspect ratios
-        size_x = scene.render.pixel_aspect_x * width_res_in_px
-        size_y = scene.render.pixel_aspect_y * height_res_in_px
-        pixel_aspect_ratio = scene.render.pixel_aspect_x / scene.render.pixel_aspect_y
-
-        # sensor fit and sensor size (and camera angle swap in specific cases)
-        if camera.data.sensor_fit == 'AUTO':
-            sensor_size_in_mm = camera.data.sensor_height if width_res_in_px < height_res_in_px else camera.data.sensor_width
-            if width_res_in_px < height_res_in_px:
-                sensor_fit = 'VERTICAL'
-                camera_angle_x, camera_angle_y = camera_angle_y, camera_angle_x
-            elif width_res_in_px > height_res_in_px:
-                sensor_fit = 'HORIZONTAL'
-            else:
-                sensor_fit = 'VERTICAL' if size_x <= size_y else 'HORIZONTAL'
-
-        else:
-            sensor_fit = camera.data.sensor_fit
-            if sensor_fit == 'VERTICAL':
-                sensor_size_in_mm = camera.data.sensor_height if width_res_in_px <= height_res_in_px else camera.data.sensor_width
-                if width_res_in_px <= height_res_in_px:
-                    camera_angle_x, camera_angle_y = camera_angle_y, camera_angle_x
-
-        # focal length for horizontal sensor fit
-        if sensor_fit == 'HORIZONTAL':
-            sensor_size_in_mm = camera.data.sensor_width
-            s_u = f_in_mm / sensor_size_in_mm * width_res_in_px
-            s_v = f_in_mm / sensor_size_in_mm * width_res_in_px * pixel_aspect_ratio
-
-        # focal length for vertical sensor fit
-        if sensor_fit == 'VERTICAL':
-            s_u = f_in_mm / sensor_size_in_mm * width_res_in_px / pixel_aspect_ratio
-            s_v = f_in_mm / sensor_size_in_mm * width_res_in_px
-
-        camera_intr_dict = {
-            'camera_angle_x': camera_angle_x,
-            'camera_angle_y': camera_angle_y,
-            'fl_x': s_u,
-            'fl_y': s_v,
-            'k1': 0.0,
-            'k2': 0.0,
-            'p1': 0.0,
-            'p2': 0.0,
-            'cx': optical_center_x,
-            'cy': optical_center_y,
-            'w': width_res_in_px,
-            'h': height_res_in_px,
-            'aabb_scale': scene.aabb
-        }
-
-        return {'camera_angle_x': camera_angle_x} if scene.nerf else camera_intr_dict
-    
     def save_log_file(self, scene, directory):
         now = datetime.datetime.now()
 
@@ -98,7 +33,7 @@ class ScenePrep(bpy.types.Operator):
         logdata['Sphere Radius'] = scene.sphere_radius
         logdata['Lens'] = str(scene.focal) + ' mm'
         logdata['Seed'] = scene.seed
-        logdata['Number of Frames'] = scene.nb_frames
+        logdata['Number of Frames'] = scene.frame_end - scene.frame_start + 1
         logdata['Number of Cameras'] = scene.nb_cameras
         logdata['Upper Views'] = scene.upper_views
         logdata['Outwards'] = scene.outwards
@@ -213,19 +148,8 @@ class ScenePrep(bpy.types.Operator):
             bpy.data.cameras[new_cam.name].lens = scene.focal
             
         bpy.data.objects.remove(bpy.data.objects[template_camera.name], do_unlink=True)
+        context.space_data.stereo_3d_camera = 'MONO'
         return cam_handle_record
-    
-    def get_camera_extrinsics(self, scene, camera_list):
-        camera_extr_dict = []
-        for camera in camera_list:
-            name = camera[1]
-            cam_obj = scene.objects[name]
-            cam_data = {
-                'camera_object': cam_obj.name,
-                'transform_matrix': helper.listify_matrix(cam_obj.matrix_world)
-            }
-            camera_extr_dict.append(cam_data)
-        return camera_extr_dict
 
     def execute(self, context):
 
@@ -247,7 +171,7 @@ class ScenePrep(bpy.types.Operator):
         Proceed with setting up the scene and rendering settings 
         and record all static information before rendering.
         '''
-        output_data = self.get_camera_intrinsics(scene, template_camera)
+        output_data = helper.get_camera_intrinsics(scene, template_camera)
         camera_list = self.prepare_scene(context)
 
         # clean directory name (unsupported characters replaced) and output path
@@ -263,6 +187,6 @@ class ScenePrep(bpy.types.Operator):
 
         # other intial properties
         scene.init_sphere_exists = scene.show_sphere
-        output_data['cameras'] = self.get_camera_extrinsics(scene, camera_list)
+        output_data['cameras'] = helper.get_camera_extrinsics(scene, camera_list)
         helper.save_json(output_path, 'transforms.json', output_data)
         return {'FINISHED'}

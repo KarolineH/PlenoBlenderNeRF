@@ -1,5 +1,5 @@
 import bpy
-from . import helper, pleno_ui, scene_prep_operator, reset_operator
+from . import helper, pleno_ui, scene_prep_operator, reset_operator, render_operator
 
 # blender info
 bl_info = {
@@ -40,8 +40,7 @@ PROPS = [
     ('focal', bpy.props.FloatProperty(name='Lens', description='Focal length of the training camera', default=50, soft_min=1, soft_max=5000, unit='CAMERA', update=helper.properties_ui_upd) ),
     ('seed', bpy.props.IntProperty(name='Seed', description='Random seed for sampling views on the training sphere', default=0) ),
     ('nb_cameras', bpy.props.IntProperty(name='Cameras', description='Number of fixed cameras placed on the sphere', default=100, soft_min=1) ),
-    ('nb_frames', bpy.props.IntProperty(name='Frames', description='Number of frames to render per camera', default=10, soft_min=1) ),
-    ('show_sphere', bpy.props.BoolProperty(name='Sphere', description='Whether to show the training sphere from which random views will be sampled', default=False, update=helper.visualize_sphere) ),
+    ('show_sphere', bpy.props.BoolProperty(name='Preview Sphere', description='Whether to show the training sphere from which random views will be sampled', default=False, update=helper.visualize_sphere) ),
     ('upper_views', bpy.props.BoolProperty(name='Upper Views', description='Whether to sample views from the upper hemisphere of the training sphere only', default=False) ),
     ('outwards', bpy.props.BoolProperty(name='Outwards', description='Whether to point the camera outwards of the training sphere', default=False, update=helper.properties_ui_upd) ),
 
@@ -54,7 +53,8 @@ PROPS = [
 CLASSES = [
     pleno_ui.PLENO_UI,
     scene_prep_operator.ScenePrep,
-    reset_operator.ResetScene
+    reset_operator.ResetScene,
+    render_operator.RenderScene
 ]
 
 # load addon
