@@ -4,7 +4,7 @@ import bpy
 class PLENO_UI(bpy.types.Panel):
     '''Plenoptic Video UI'''
     bl_idname = 'VIEW3D_PT_pleno_ui'
-    bl_label = 'Plenoptic Video PLENO'
+    bl_label = 'Plenoptic Video NeRF dataset creator (PlenoBlenderNeRF)'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'PlenoBlenderNeRF'
