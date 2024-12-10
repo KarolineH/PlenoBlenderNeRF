@@ -25,6 +25,7 @@ class ResetScene(bpy.types.Operator):
         new_template_cam = context.scene.objects[camera_list[0]]
         new_template_cam.name = 'Camera'
         context.scene.camera = new_template_cam # keep the first camera as a new template
+        context.scene.render.use_multiview = False # disable multiview rendering again
 
         for camera in camera_list[1:]:
             bpy.data.objects.remove(bpy.data.objects[camera], do_unlink=True)

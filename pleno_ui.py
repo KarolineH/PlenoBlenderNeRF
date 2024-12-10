@@ -38,7 +38,6 @@ class PLENO_UI(bpy.types.Panel):
         layout.prop(scene, 'sphere_rotation')
         layout.prop(scene, 'sphere_scale')
         layout.prop(scene, 'sphere_radius')
-        layout.prop(scene, 'focal')
         layout.prop(scene, 'seed')
 
         layout.prop(scene, 'nb_cameras')

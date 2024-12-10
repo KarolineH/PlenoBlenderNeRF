@@ -16,7 +16,7 @@ class ScenePrep(bpy.types.Operator):
     bl_idname = 'object.scene_prep'
     bl_label = 'Plenoptic Video Scene Prep'
 
-    def save_log_file(self, scene, directory):
+    def save_log_file(self, scene, focal_length, directory):
         now = datetime.datetime.now()
 
         logdata = {
@@ -31,7 +31,7 @@ class ScenePrep(bpy.types.Operator):
         logdata['Sphere Rotation'] = str(list(scene.sphere_rotation))
         logdata['Sphere Scale'] = str(list(scene.sphere_scale))
         logdata['Sphere Radius'] = scene.sphere_radius
-        logdata['Lens'] = str(scene.focal) + ' mm'
+        logdata['Lens'] = str(focal_length) + ' mm'
         logdata['Seed'] = scene.seed
         logdata['Number of Frames'] = scene.frame_end - scene.frame_start + 1
         logdata['Number of Cameras'] = scene.nb_cameras
@@ -145,7 +145,6 @@ class ScenePrep(bpy.types.Operator):
             new_cam.name = f"{template_camera.name}_{i}"
             new_cam.data.name = f"{template_camera.name}_{i}"
             context.collection.objects.link(new_cam)
-            bpy.data.cameras[new_cam.name].lens = scene.focal
             
         bpy.data.objects.remove(bpy.data.objects[template_camera.name], do_unlink=True)
         context.space_data.stereo_3d_camera = 'MONO'
@@ -156,6 +155,7 @@ class ScenePrep(bpy.types.Operator):
         ''' First, check that all inputs are valid '''
         scene = context.scene
         template_camera = scene.camera
+        focal_length = template_camera.data.lens
         # check if camera is selected : next errors depend on an existing camera
         if template_camera == None:
             self.report({'ERROR'}, 'Be sure to have a selected camera!')
@@ -179,7 +179,7 @@ class ScenePrep(bpy.types.Operator):
         output_path = os.path.join(scene.save_path, output_dir)
         os.makedirs(output_path, exist_ok=True)
 
-        if scene.logs: self.save_log_file(scene, output_path)
+        if scene.logs: self.save_log_file(scene, focal_length, output_path)
         if scene.splats: self.save_splats_ply(scene, output_path)
 
         # initial property might have changed since set_init_props update
