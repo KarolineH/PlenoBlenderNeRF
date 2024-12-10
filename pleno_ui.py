@@ -43,6 +43,7 @@ class PLENO_UI(bpy.types.Panel):
         layout.prop(scene, 'nb_cameras')
         layout.prop(scene, 'upper_views', toggle=True)
         layout.prop(scene, 'outwards', toggle=True)
+        layout.prop(scene, 'uniform', toggle=True)
 
         layout.use_property_split = False
         layout.separator()

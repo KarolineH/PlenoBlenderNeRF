@@ -103,10 +103,24 @@ class ScenePrep(bpy.types.Operator):
         points = scene.sphere_radius * np.array(scene.sphere_scale) * unit_vectors
         overall_rotation = mathutils.Euler(scene.sphere_rotation).to_matrix() # in case the sphere is rotated in the scene
         points = (np.array(overall_rotation) @ points.T).T
-
-        # generate the rotation component
-        view_vectors = np.array(scene.sphere_location) - points # view vectors from camera poses to sphere origin
-        up= np.array([0, 0, 1]) # define the up vector (world Z-axis)
+        return points
+    
+    def regular_cam_poses(self, scene, num_cameras):
+        # instead of random, distribute the cameras uniformly on a sphere
+        phi = np.pi * (np.sqrt(5.) - 1.)  # golden angle in radians
+        indices = np.arange(0, num_cameras, dtype=float) + 0.5  # to place the points in the middle of the bins
+        if scene.upper_views:
+            z = (indices/num_cameras)
+        else:
+            z = 1 - (indices / num_cameras) * 2  # y goes from 1 to -1
+        radius = np.sqrt(1 - z * z)  # radius at y
+        theta = phi * np.arange(0, num_cameras, dtype=float)  # golden angle increment
+        x = np.cos(theta) * radius
+        y = - np.sin(theta) * radius
+        unit_vectors = np.vstack((x, y, z)).T
+        points = scene.sphere_radius * np.array(scene.sphere_scale) * unit_vectors
+        overall_rotation = mathutils.Euler(scene.sphere_rotation).to_matrix() # in case the sphere is rotated in the scene
+        points = (np.array(overall_rotation) @ points.T).T
         return points
 
     def prepare_scene(self, context):
@@ -120,7 +134,10 @@ class ScenePrep(bpy.types.Operator):
         helper.create_sphere(context) # only creates the sphere if it does not already exist
 
         num_cameras = scene.nb_cameras
-        points = self.sample_cam_poses(scene, num_cameras)
+        if scene.uniform:
+            points = self.regular_cam_poses(scene, num_cameras)
+        else:
+            points = self.sample_cam_poses(scene, num_cameras)
 
         cam_handle_record = [] # keep a record of pairs of object names and their corresponding camera handles for multi-view rendering
         bpy.ops.scene.render_view_add() # add a first additional camera in the multi-view menu
