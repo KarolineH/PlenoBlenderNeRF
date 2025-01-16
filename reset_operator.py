@@ -11,6 +11,9 @@ class ResetScene(bpy.types.Operator):
     default_cam_handles = ['left', 'right']
 
     def execute(self, context):
+        '''
+        Reset the scene so that the scene can be set-up again from the GUI.
+        '''
         camera_list = sorted([obj.name for obj in bpy.data.objects if obj.type == 'CAMERA']) # names of all camera objects
         view_names = context.scene.render.views.keys() # names of all render views registered for multiview rendering
         

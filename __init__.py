@@ -20,9 +20,7 @@ VERSION = '.'.join(str(x) for x in bl_info['version'])
 PROPS = [
     # global controllable properties
     ('aabb', bpy.props.IntProperty(name='AABB', description='AABB scale as defined in Instant NGP', default=4, soft_min=1, soft_max=128) ),
-    ('logs', bpy.props.BoolProperty(name='Save Log File', description='Whether to create a log file containing information on the BlenderNeRF run', default=False) ),
-    ('splats', bpy.props.BoolProperty(name='Gaussian Points', description='Whether to export a points3d.ply file for Gaussian Splatting', default=False) ),
-    ('nerf', bpy.props.BoolProperty(name='NeRF', description='Whether to export the camera transforms.json files in the defaut NeRF file format convention', default=False) ),
+    ('splats', bpy.props.BoolProperty(name='Gaussian Points', description='Whether to export a points3d.ply file for Gaussian Splatting', default=True) ),
     ('save_path', bpy.props.StringProperty(name='Save Path', description='Path to the output directory in which the synthetic dataset will be stored', subtype='DIR_PATH') ),
 
     # global automatic properties
@@ -42,9 +40,8 @@ PROPS = [
     ('first_frame_nr', bpy.props.IntProperty(name='Start Frame Number', description='First frame of the animation to render', default=1, soft_min=1) ),
     ('final_frame_nr', bpy.props.IntProperty(name='End Frame Number', description='Last frame of the animation to render', default=48, soft_min=1) ),
     ('show_sphere', bpy.props.BoolProperty(name='Preview Sphere', description='Whether to show the training sphere from which random views will be sampled', default=False, update=helper.visualize_sphere) ),
-    ('upper_views', bpy.props.BoolProperty(name='Upper Views', description='Whether to sample views from the upper hemisphere of the training sphere only', default=False) ),
-    ('outwards', bpy.props.BoolProperty(name='Outwards', description='Whether to point the camera outwards of the training sphere', default=False, update=helper.properties_ui_upd) ),
-    ('uniform', bpy.props.BoolProperty(name='Uniform', description='Whether to sample views uniformly on the training sphere', default=False) ),
+    ('upper_views', bpy.props.BoolProperty(name='Upper Views', description='Whether to sample views from the upper hemisphere of the training sphere only', default=True) ),
+    ('cam_distribution', bpy.props.BoolProperty(name='Random per-frame', description='Whether to place cameras in fixed uniformly sampled or random per-frame positions', default=False)),
 
     # PLeno automatic properties
     ('sphere_exists', bpy.props.BoolProperty(name='Sphere Exists', description='Whether the sphere exists', default=False) ),

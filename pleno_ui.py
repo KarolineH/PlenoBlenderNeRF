@@ -18,15 +18,7 @@ class PLENO_UI(bpy.types.Panel):
 
         layout.use_property_split = True
         layout.prop(scene, 'aabb')
-        layout.prop(scene, 'logs')
         layout.prop(scene, 'splats', text='Gaussian Points (PLY file)')
-
-        layout.separator()
-        layout.label(text='File Format')
-
-        row = layout.row(align=True)
-        row.prop(scene, 'nerf', toggle=True, text='NGP', invert_checkbox=True)
-        row.prop(scene, 'nerf', toggle=True)
 
         layout.separator()
         layout.use_property_split = True
@@ -38,20 +30,20 @@ class PLENO_UI(bpy.types.Panel):
         layout.prop(scene, 'sphere_rotation')
         layout.prop(scene, 'sphere_scale')
         layout.prop(scene, 'sphere_radius')
-        layout.prop(scene, 'seed')
-
-        layout.prop(scene, 'nb_cameras')
-        layout.prop(scene, 'upper_views', toggle=True)
-        layout.prop(scene, 'outwards', toggle=True)
-        layout.prop(scene, 'uniform', toggle=True)
-        layout.prop(scene, 'first_frame_nr')
-        layout.prop(scene, 'final_frame_nr')
-
-        layout.use_property_split = False
-        layout.separator()
-
         row = layout.row(align=True)
         row.prop(scene, 'show_sphere', toggle=True)
+        
+        layout.separator()
+        layout.prop(scene, 'seed')
+        layout.prop(scene, 'first_frame_nr')
+        layout.prop(scene, 'final_frame_nr')
+        layout.prop(scene, 'nb_cameras')
+        layout.prop(scene, 'upper_views', toggle=True)
+        layout.label(text='Camera distribution')
+        row = layout.row(align=True)
+        row.prop(scene, 'cam_distribution', toggle=True, text='per-frame', invert_checkbox=True)
+        row.prop(scene, 'cam_distribution', toggle=True, text='static')
+
         layout.operator('object.scene_prep', text='SET UP SCENE')
         layout.operator('object.scene_reset', text='RESET SCENE')
         layout.operator('object.renderer', text='RENDER')

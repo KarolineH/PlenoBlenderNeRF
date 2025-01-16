@@ -74,7 +74,7 @@ class ScenePrep(bpy.types.Operator):
         overall_rotation = mathutils.Euler(scene.sphere_rotation).to_matrix() # in case the sphere is rotated in the scene
         points = (np.array(overall_rotation) @ points.T).T
         result = np.expand_dims(points, axis=0) # array of size [1, num_cameras, 3] containing the camera position coordinates (xyz)
-        return points
+        return result
 
     def prepare_scene(self, context):
         ### Places all the cameras in their initial positions and sets rendering settings
@@ -89,7 +89,9 @@ class ScenePrep(bpy.types.Operator):
 
         num_cameras = scene.nb_cameras
         repetitions = scene.final_frame_nr - scene.first_frame_nr + 1
-        if scene.uniform:
+        scene.frame_end = scene.final_frame_nr
+        scene.frame_start = scene.first_frame_nr
+        if scene.cam_distribution:
             points = self.regular_cam_poses(scene, num_cameras)
         else:
             points = self.sample_cam_poses(scene, num_cameras, repetitions)
@@ -98,7 +100,6 @@ class ScenePrep(bpy.types.Operator):
         bpy.ops.scene.render_view_add() # add a first additional camera in the multi-view menu
 
         # points has shape [num_repetitions, num_cameras, 3], always use the first (and sometimes only) repetition for initial camera placement
-        #TODO: Points is 2D and 3D sometimes??
         for i, point in enumerate(points[0,:,:]):
             if i < len(default_cam_handles):
                 cam_handle = default_cam_handles[i]
@@ -113,7 +114,7 @@ class ScenePrep(bpy.types.Operator):
             new_cam.location = point
 
             cam_constraint = new_cam.constraints.new(type='TRACK_TO')
-            cam_constraint.track_axis = 'TRACK_Z' if scene.outwards else 'TRACK_NEGATIVE_Z'
+            cam_constraint.track_axis = 'TRACK_NEGATIVE_Z'
             cam_constraint.up_axis = 'UP_Y'
             cam_constraint.target = bpy.data.objects[SPHERE_NAME]
 
@@ -129,7 +130,7 @@ class ScenePrep(bpy.types.Operator):
             
         bpy.data.objects.remove(bpy.data.objects[template_camera.name], do_unlink=True)
         context.space_data.stereo_3d_camera = 'MONO'
-        return cam_handle_record
+        return cam_handle_record, points
 
     def execute(self, context):
 
@@ -152,22 +153,19 @@ class ScenePrep(bpy.types.Operator):
         Proceed with setting up the scene and rendering settings.
         '''
         output_data = helper.get_camera_intrinsics(scene, template_camera)
-        camera_list = self.prepare_scene(context)
-        #TODO: All camera poses are known at this point, only train/test split might not be know at this point. Write to file here?
+        camera_list, poses = self.prepare_scene(context)
+        scene['cam_handles'] = camera_list # save the camera handles for later use
 
         # clean directory name (unsupported characters replaced) and output path
         output_dir = bpy.path.clean_name(scene.dataset_name)
         output_path = os.path.join(scene.save_path, output_dir)
         os.makedirs(output_path, exist_ok=True)
 
-        # if scene.logs: self.save_log_file(scene, focal_length, output_path)
-        # if scene.splats: self.save_splats_ply(scene, output_path)
+        np.save(os.path.join(scene.save_path, scene.dataset_name, 'tmp_camera_poses.npy'), poses) # write the temporary array with all camera poses to a file, overwrites each time the scene is set up
+        helper.save_log_file(scene, focal_length, output_path) # log file also overwrites each time the scene is set up
 
         # initial property might have changed since set_init_props update
         scene.init_output_path = scene.render.filepath
-
         # other intial properties
         scene.init_sphere_exists = scene.show_sphere
-        output_data['cameras'] = helper.get_camera_extrinsics(scene, camera_list)
-        helper.save_json(output_path, 'transforms.json', output_data)
         return {'FINISHED'}
