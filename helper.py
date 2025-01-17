@@ -4,6 +4,7 @@ import math
 import shutil
 import json
 import datetime
+import numpy as np
 from bpy.app.handlers import persistent
 
 SPHERE_NAME = 'PlenoSphere'
@@ -95,16 +96,30 @@ def get_camera_intrinsics(scene, camera):
     return camera_intr_dict
 
 def get_camera_extrinsics(scene, camera_list):
-    camera_extr_dict = []
-    for camera in camera_list:
-        name = camera[1]
-        cam_obj = scene.objects[name]
-        cam_data = {
-            'camera_object': cam_obj.name,
-            'transform_matrix': listify_matrix(cam_obj.matrix_world)
-        }
-        camera_extr_dict.append(cam_data)
-    return camera_extr_dict
+
+    camera_extrinsics = []
+
+    if scene.cam_distribution:
+        # if cameras are static, only one set of extrinsics is needed
+        repetitions = 1
+    else:
+        repetitions = scene.final_frame_nr - scene.first_frame_nr + 1
+
+    for rep in range(repetitions): # iterate over frames
+        bpy.context.scene.frame_set(rep+1) # set the context to the current frame
+        frame_extrinsics = []
+
+        for camera in camera_list:
+            name = camera[1]
+            cam_obj = scene.objects[name]
+            cam_data = listify_matrix(cam_obj.matrix_world)
+            frame_extrinsics.append(cam_data)
+        camera_extrinsics.append(frame_extrinsics)
+    
+    if scene.cam_distribution:
+        camera_extrinsics = np.tile(camera_extrinsics, (scene.final_frame_nr - scene.first_frame_nr + 1, 1, 1, 1))
+    
+    return camera_extrinsics
 
 def create_sphere(context):
     scene = context.scene
@@ -151,6 +166,7 @@ def save_log_file(scene, focal_length, directory):
     logdata['Number of Cameras'] = scene.nb_cameras
     logdata['Upper Views'] = scene.upper_views
     logdata['Dataset Name'] = scene.dataset_name
+    logdata['Camera Distribution'] = 'Random per-frame' if scene.cam_distribution else 'Static uniform'
 
     save_json(directory, filename='log.txt', data=logdata)
     return

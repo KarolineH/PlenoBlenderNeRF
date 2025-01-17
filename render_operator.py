@@ -1,5 +1,6 @@
 import bpy
 import os
+import numpy as np
 from . import helper
 
 class RenderScene(bpy.types.Operator):
@@ -14,10 +15,27 @@ class RenderScene(bpy.types.Operator):
         return 'FINISHED'
     
     def write_metadata(self, scene, output_path):
-        intrinsics = helper.get_camera_intrinsics(scene, scene.camera) # intrinsics are the same for all cameras
+        intrinsics = helper.get_camera_intrinsics(scene, scene.objects[scene['cam_handles'][0][1]]) # intrinsics are the same for all cameras
+        camera_matrix = np.array([[intrinsics['fl_x'], 0, intrinsics['cx']], [0, intrinsics['fl_y'], intrinsics['cy']], [0, 0, 1]])
         extrinsics = helper.get_camera_extrinsics(scene, scene['cam_handles'])
+        nr_frames = scene.final_frame_nr - scene.first_frame_nr + 1
 
-        # helper.save_json(output_path, 'transforms.json', output_data)
+        frame_ids = [str(number+1).zfill(4) for number in range(nr_frames)]
+        camera_ids = [str(cam_id) for cam_id in range(scene.nb_cameras)]
+        file_names_nested = [[f"{frame_id}_{camera_id}.png" for camera_id in camera_ids] for frame_id in frame_ids]
+
+
+        meta_data = {}
+        meta_data['w'] = intrinsics['w']
+        meta_data['h'] = intrinsics['h']
+        meta_data['k'] = np.tile(camera_matrix, (nr_frames, scene.nb_cameras, 1, 1)).tolist()
+        meta_data['w2c'] = extrinsics
+        meta_data['fn'] = file_names_nested
+        meta_data['cam_id'] = [[int(index) for index in range(scene.nb_cameras)] for _ in range(nr_frames)]
+
+        #TODO: Save the file names according to the new folder structure of ims/cam/frame.png
+
+        helper.save_json(output_path, 'meta.json', meta_data)
 
     def execute(self, context):
         scene = context.scene
@@ -35,8 +53,7 @@ class RenderScene(bpy.types.Operator):
         scene.frame_end = scene.final_frame_nr
         scene.frame_start = scene.first_frame_nr
 
-        #TODO: Write meta data, in the correct format
-        #TODO: Update the extrinsics fetching code
+        self.write_metadata(scene, output_path)
 
         self.render(scene, output_path) # RENDER SCENE
 

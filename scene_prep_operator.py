@@ -152,7 +152,7 @@ class ScenePrep(bpy.types.Operator):
         ''' 
         Proceed with setting up the scene and rendering settings.
         '''
-        output_data = helper.get_camera_intrinsics(scene, template_camera)
+        #output_data = helper.get_camera_intrinsics(scene, template_camera)
         camera_list, poses = self.prepare_scene(context)
         scene['cam_handles'] = camera_list # save the camera handles for later use
 
@@ -161,7 +161,7 @@ class ScenePrep(bpy.types.Operator):
         output_path = os.path.join(scene.save_path, output_dir)
         os.makedirs(output_path, exist_ok=True)
 
-        np.save(os.path.join(scene.save_path, scene.dataset_name, 'tmp_camera_poses.npy'), poses) # write the temporary array with all camera poses to a file, overwrites each time the scene is set up
+        #np.save(os.path.join(scene.save_path, scene.dataset_name, 'tmp_camera_poses.npy'), poses) # write the temporary array with all camera poses to a file, overwrites each time the scene is set up
         helper.save_log_file(scene, focal_length, output_path) # log file also overwrites each time the scene is set up
 
         # initial property might have changed since set_init_props update
