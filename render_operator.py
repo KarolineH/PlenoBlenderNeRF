@@ -1,6 +1,7 @@
 import bpy
 import os
 import numpy as np
+import shutil
 from . import helper
 
 class RenderScene(bpy.types.Operator):
@@ -20,10 +21,9 @@ class RenderScene(bpy.types.Operator):
         extrinsics = helper.get_camera_extrinsics(scene, scene['cam_handles'])
         nr_frames = scene.final_frame_nr - scene.first_frame_nr + 1
 
-        frame_ids = [str(number+1).zfill(4) for number in range(nr_frames)]
+        frame_ids = [str(number+1).zfill(6) for number in range(nr_frames)]
         camera_ids = [str(cam_id) for cam_id in range(scene.nb_cameras)]
-        file_names_nested = [[f"{frame_id}_{camera_id}.png" for camera_id in camera_ids] for frame_id in frame_ids]
-
+        file_names_nested = [[f"{camera_id}/{frame_id}.{scene.render.image_settings.file_format.lower()}" for camera_id in camera_ids] for frame_id in frame_ids]
 
         meta_data = {}
         meta_data['w'] = intrinsics['w']
@@ -32,8 +32,6 @@ class RenderScene(bpy.types.Operator):
         meta_data['w2c'] = extrinsics
         meta_data['fn'] = file_names_nested
         meta_data['cam_id'] = [[int(index) for index in range(scene.nb_cameras)] for _ in range(nr_frames)]
-
-        #TODO: Save the file names according to the new folder structure of ims/cam/frame.png
 
         helper.save_json(output_path, 'meta.json', meta_data)
 
@@ -57,7 +55,5 @@ class RenderScene(bpy.types.Operator):
 
         self.render(scene, output_path) # RENDER SCENE
 
-        #TODO: Pack the images into folders by camera and frame
-        #ims/0/0000000.png
-        #ims/cam/frame.png
+        #TODO: Check the coordinate frame convention
         return {'FINISHED'}

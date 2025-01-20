@@ -286,10 +286,39 @@ def upd_on():
     can_scene_upd = properties_ui
     can_properties_upd = properties_desgraph
 
+def organise_folder_structure(directory):
+    ''' 
+    Organise the output folder structure.
+    Follows the structure from Dynamic 3D Gaussians.
+    '''
+    # find all files ending in png jpg jpeg
+    file_extension = bpy.context.scene.render.image_settings.file_format.lower()
+    img_files = sorted([name for name in os.listdir(directory) if name.lower().endswith(file_extension)])
+
+    if not img_files:
+        return
+    else:
+        for image in img_files:
+            frame_str, camera_str = image.split('.')[0].split('_')
+            frame_num = int(frame_str)
+            camera_num = int(camera_str)
+
+            # Create camera folder if it doesn't exist
+            camera_folder = os.path.join(directory, str(camera_num))
+            os.makedirs(camera_folder, exist_ok=True)
+
+            current_path = os.path.join(directory, image)
+            new_path = os.path.join(camera_folder, f"{frame_num:06d}.{file_extension}")
+            shutil.move(current_path, new_path)
+    return
+
 # reset properties back to intial
 @persistent
 def post_render(scene):
     if scene.rendering: # execute this function only when rendering with addon
+
+        organise_folder_structure(scene.render.filepath) # organise folder structure into subfolders
+
         dataset_name = scene.dataset_name
         # do some clean up of the scene here if you want
         scene.rendering = False
