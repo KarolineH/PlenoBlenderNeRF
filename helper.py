@@ -173,6 +173,9 @@ def save_log_file(scene, focal_length, directory):
 
 # export vertex colors for each visible mesh
 def save_splats_ply(scene, directory):
+
+    bpy.context.scene.frame_set(scene.first_frame_nr) # set the context to the first frame!
+
     TMP_VERTEX_COLORS = 'plenoblendernerf_vertex_colors_tmp'
     # create temporary vertex colors
     for obj in scene.objects:
