@@ -29,7 +29,7 @@ class RenderScene(bpy.types.Operator):
         meta_data['w'] = intrinsics['w']
         meta_data['h'] = intrinsics['h']
         meta_data['k'] = np.tile(camera_matrix, (nr_frames, scene.nb_cameras, 1, 1)).tolist()
-        meta_data['w2c'] = extrinsics
+        meta_data['w2c'] = extrinsics.tolist()
         meta_data['fn'] = file_names_nested
         meta_data['cam_id'] = [[int(index) for index in range(scene.nb_cameras)] for _ in range(nr_frames)]
 

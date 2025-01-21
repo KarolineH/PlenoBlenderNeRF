@@ -33,3 +33,5 @@ class ResetScene(bpy.types.Operator):
         for camera in camera_list[1:]:
             bpy.data.objects.remove(bpy.data.objects[camera], do_unlink=True)
         return {'FINISHED'}
+    
+    #TODO: Check if any of the new variable need resetting here

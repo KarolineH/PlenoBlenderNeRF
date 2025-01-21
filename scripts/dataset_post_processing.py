@@ -52,10 +52,44 @@ def sample_dense_pc(dataset_path, size=150000):
     points = np.asarray(pc.points)
     colours = np.asarray(pc.colors)
     nppc = np.append(points, colours, axis=1)
+    nppc = np.append(nppc, np.ones([size,1]), axis=1) # Add a column of ones as segmentation mask
     out_file = os.path.join(dataset_path, 'init_pt_cld.npz')
     np.savez(out_file, data=nppc)
     o3d.io.write_point_cloud(os.path.join(dataset_path, 'init_pt_cld.ply'), pc)
     return
 
-train_test_split('/home/karo/ws/PlenoBlenderNeRF/tests/dataset9', test_cameras=[2,0])
-sample_dense_pc('/home/karo/ws/PlenoBlenderNeRF/tests/dataset9')
+def create_segmentation_masks(dataset_path):
+    from PIL import Image
+
+    input_img_dir = os.path.join(dataset_path, 'ims/')
+    output_img_dir = os.path.join(dataset_path, 'seg/')
+
+    def process_image(input_path, output_path):
+        # Open the image
+        img = Image.open(input_path).convert("RGBA")
+        # Extract the alpha channel (transparency)
+        alpha = img.split()[-1]
+        # Create a binary mask (255 for white, 0 for black)
+        binary_mask = Image.eval(alpha, lambda a: 255 if a > 0 else 0)
+        # Save the mask
+        binary_mask.save(output_path)
+
+    # Walk through the input directory and replicate the structure
+    for root, _, files in os.walk(input_img_dir):
+        for file in files:
+            if file.endswith(".png"):
+                input_path = os.path.join(root, file)
+                relative_path = os.path.relpath(input_path, input_img_dir)
+                output_path = os.path.join(output_img_dir, relative_path)
+                # Ensure the output directory exists
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+                # Process the image
+                process_image(input_path, output_path)
+
+
+if __name__ == '__main__':
+    dataset_path = '/media/karo/Data1/karo/synthetic_movement_dataset/scenes/rotation'
+    # create_segmentation_masks(dataset_path)
+    # train_test_split(dataset_path, test_cameras=[3,9,20,31])
+    sample_dense_pc(dataset_path)
