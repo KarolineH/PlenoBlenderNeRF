@@ -42,8 +42,9 @@ PROPS = [
     ('show_sphere', bpy.props.BoolProperty(name='Preview Sphere', description='Whether to show the training sphere from which random views will be sampled', default=False, update=helper.visualize_sphere) ),
     ('upper_views', bpy.props.BoolProperty(name='Upper Views', description='Whether to sample views from the upper hemisphere of the training sphere only', default=True) ),
     ('cam_distribution', bpy.props.BoolProperty(name='Random per-frame', description='Whether to place cameras in fixed uniformly sampled or random per-frame positions', default=False)),
+    ('coordinate_frame', bpy.props.BoolProperty(name='Coordinate Frame Convention', description='Whether to use the NeRF/Blender or OpenCV/COLMAP camera coordinate frame convention', default=True)),
 
-    # PLeno automatic properties
+    # Pleno automatic properties
     ('sphere_exists', bpy.props.BoolProperty(name='Sphere Exists', description='Whether the sphere exists', default=False) ),
     ('init_sphere_exists', bpy.props.BoolProperty(name='Init sphere exists', description='Whether the sphere initially exists', default=False) ),
 ]

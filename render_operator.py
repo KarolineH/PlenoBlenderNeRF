@@ -1,7 +1,6 @@
 import bpy
 import os
 import numpy as np
-import shutil
 from . import helper
 
 class RenderScene(bpy.types.Operator):

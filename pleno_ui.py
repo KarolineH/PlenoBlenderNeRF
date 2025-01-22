@@ -19,6 +19,9 @@ class PLENO_UI(bpy.types.Panel):
         layout.use_property_split = True
         layout.prop(scene, 'aabb')
         layout.prop(scene, 'splats', text='Gaussian Points (PLY file)')
+        row = layout.row(align=True)
+        row.prop(scene, 'coordinate_frame', toggle=True, text='NeRF', invert_checkbox=True)
+        row.prop(scene, 'coordinate_frame', toggle=True, text='OpenCV')
 
         layout.separator()
         layout.use_property_split = True

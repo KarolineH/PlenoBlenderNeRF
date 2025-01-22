@@ -113,6 +113,12 @@ def get_camera_extrinsics(scene, camera_list):
             name = camera[1]
             cam_obj = scene.objects[name]
             cam_data = listify_matrix(cam_obj.matrix_world)
+
+            if scene.coordinate_frame:
+                # convert from NeRF/Blender to OpenCV/COLMAP coordinate frame
+                converted_array = convert_blender_to_opencv(cam_obj.matrix_world)
+                cam_data = listify_matrix(converted_array)
+
             frame_extrinsics.append(cam_data)
         camera_extrinsics.append(frame_extrinsics)
     
@@ -120,6 +126,61 @@ def get_camera_extrinsics(scene, camera_list):
         camera_extrinsics = np.tile(camera_extrinsics, (scene.final_frame_nr - scene.first_frame_nr + 1, 1, 1, 1))
     
     return camera_extrinsics
+
+def convert_blender_to_opencv(pose):
+    '''
+    Convert a camera(!) pose from Blender to OpenCV coordinate frame.
+    Accounting for the differences in both the local camera frame definition and also the global world coordinate frame convention.
+    '''
+    # Step 1: Flip y and z for each camera's orientation, keep locations the same
+    camera_rotation_action = np.diag([1, -1, -1, 1])
+    flipped = np.array(pose) @ camera_rotation_action
+    # Step 2: Rotate the camera position AND rotation about global x (clockwise), so by -90 degrees
+    rotation_about_x = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
+    rotated = rotation_about_x @ flipped
+    # Step 3: Rotate the camera position AND rotation about global z (counter-clockwise), so by +90 degrees 
+    # rotation_about_z = np.array([[0, 1, 0, 0], [-1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    rotation_about_y = np.array([[0, 0, 1, 0], [0, 1, 0, 0], [-1, 0, 0, 0], [0, 0, 0, 1]])
+    rotated = rotation_about_y @ rotated
+    return rotated
+
+def rotate_ply_to_opencv(ply_path):
+    '''
+    Rotate a PLY file from Blender to the OpenCV world coordinate frame.
+    '''
+    with(open(ply_path, 'r')) as f: 
+        lines = f.readlines()
+
+    for i,line in enumerate(lines): # find the number of points and the start index
+        if 'element vertex' in line:
+            num_points = int(line.split()[-1])
+        if 'end_header' in line:
+            start_index = i + 1
+            break
+
+    # Identify which lines to alter
+    old_lines = lines[start_index:start_index+num_points]
+    coordinates = np.array([line.split()[:3] for line in old_lines], dtype=np.float64)
+    normals = np.array([line.split()[3:6] for line in old_lines], dtype=np.float64)
+
+    # Step 1: Rotate all vertices and normals about x (clockwise), so by -90 degrees
+    rotation_about_x = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])
+    rotated = (rotation_about_x @ coordinates.T).T
+    rotated_normals = (rotation_about_x @ normals.T).T
+
+    # Step 2: Rotate all vertices and normals about y (counter-clockwise), so by +90 degrees
+    rotation_about_y = np.array([[0, 0, 1], [0, 1, 0], [-1, 0, 0]])
+    rotated = (rotation_about_y @ rotated.T).T
+    rotated_normals = (rotation_about_y @ rotated_normals.T).T
+
+    # Format the new lines to match the old ones
+    new_lines = [' '.join([str(coord) for coord in rotated[i]] + [str(norm) for norm in rotated_normals[i]]) + ' ' + ' '.join(old_lines[i].split()[6:]) + '\n' for i in range(num_points)]
+    new_lines = [str.replace(line, '0.0 ', '0 ') for line in new_lines]
+    # And save the file with the new lines
+    lines[start_index:start_index+num_points] = new_lines
+    with open(ply_path, 'w') as f:
+        f.writelines(lines)
+    return
 
 def create_sphere(context):
     scene = context.scene
@@ -167,6 +228,7 @@ def save_log_file(scene, focal_length, directory):
     logdata['Upper Views'] = scene.upper_views
     logdata['Dataset Name'] = scene.dataset_name
     logdata['Camera Distribution'] = 'Random per-frame' if scene.cam_distribution else 'Static uniform'
+    logdata['Camera Coordinate Frame'] = 'NeRF/Blender' if scene.coordinate_frame else 'OpenCV/COLMAP'
 
     save_json(directory, filename='log.txt', data=logdata)
     return
@@ -200,6 +262,9 @@ def save_splats_ply(scene, directory):
 
     # save ply file
     bpy.ops.wm.ply_export(filepath=os.path.join(directory, 'points3d.ply'), export_normals=True, export_attributes=False, ascii_format=True)
+    if scene.coordinate_frame:
+        bpy.ops.wm.ply_export(filepath=os.path.join(directory, 'points3d(in_nerf_coordinate_frame).ply'), export_normals=True, export_attributes=False, ascii_format=True)
+        rotate_ply_to_opencv(os.path.join(directory, 'points3d.ply'))
 
     # remove temporary vertex colors
     for obj in scene.objects:
