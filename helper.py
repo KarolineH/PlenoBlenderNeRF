@@ -112,14 +112,11 @@ def get_camera_extrinsics(scene, camera_list):
         for camera in camera_list:
             name = camera[1]
             cam_obj = scene.objects[name]
-            cam_data = listify_matrix(cam_obj.matrix_world)
-
-            if scene.coordinate_frame:
-                # convert from NeRF/Blender to OpenCV/COLMAP coordinate frame
-                converted_array = convert_blender_to_opencv(cam_obj.matrix_world)
-                cam_data = listify_matrix(converted_array)
-
-            frame_extrinsics.append(cam_data)
+            cam_data = np.array(cam_obj.matrix_world)
+            if scene.coordinate_frame: 
+                cam_data = convert_blender_to_opencv(cam_data) # convert from NeRF/Blender to OpenCV/COLMAP coordinate frame
+            w2c = np.linalg.inv(cam_data) #! invert to get the w2c matrix, not the c2w matrix
+            frame_extrinsics.append(listify_matrix(w2c))
         camera_extrinsics.append(frame_extrinsics)
     
     if scene.cam_distribution:
@@ -134,7 +131,7 @@ def convert_blender_to_opencv(pose):
     '''
     # Step 1: Flip y and z for each camera's orientation, keep locations the same
     camera_rotation_action = np.diag([1, -1, -1, 1])
-    flipped = np.array(pose) @ camera_rotation_action
+    flipped = pose @ camera_rotation_action
     # Step 2: Rotate the camera position AND rotation about global x (clockwise), so by -90 degrees
     rotation_about_x = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
     rotated = rotation_about_x @ flipped

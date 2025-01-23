@@ -53,6 +53,5 @@ class RenderScene(bpy.types.Operator):
         self.write_metadata(scene, output_path)
 
         self.render(scene, output_path) # RENDER SCENE
-
-        #TODO: Check the coordinate frame convention
+        
         return {'FINISHED'}
