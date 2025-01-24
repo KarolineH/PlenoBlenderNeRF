@@ -369,11 +369,11 @@ def organise_folder_structure(directory):
             camera_num = int(camera_str)
 
             # Create camera folder if it doesn't exist
-            camera_folder = os.path.join(directory, str(camera_num))
+            camera_folder = os.path.join(directory, 'ims', str(camera_num))
             os.makedirs(camera_folder, exist_ok=True)
 
             current_path = os.path.join(directory, image)
-            new_path = os.path.join(camera_folder, 'ims', f"{frame_num:06d}.{file_extension}")
+            new_path = os.path.join(camera_folder, f"{frame_num:06d}.{file_extension}")
             shutil.move(current_path, new_path)
     return
 
