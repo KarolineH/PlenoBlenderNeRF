@@ -1,2 +1,2 @@
 # PlenoBlenderNeRF
-Blender add-on for recording plenoptic video and creating NeRF data sets dynamic (animated) scenes wihtin Blender. 
+Blender add-on for recording plenoptic video and creating NeRF/4DGS data sets of dynamic (animated) scenes wihtin Blender. 

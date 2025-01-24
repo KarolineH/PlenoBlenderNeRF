@@ -3,6 +3,8 @@ import os
 import math
 import shutil
 import json
+import datetime
+import numpy as np
 from bpy.app.handlers import persistent
 
 SPHERE_NAME = 'PlenoSphere'
@@ -22,13 +24,10 @@ def asserts(scene):
         error_messages.append('Dataset name cannot be empty!')
     if any(x == 0 for x in scene.sphere_scale):
         error_messages.append('The sampling sphere cannot be flat! Change its scale to be non-zero in all axes.')
-
-    if not scene.nerf and not is_power_of_two(scene.aabb):
+    if not is_power_of_two(scene.aabb):
         error_messages.append('AABB scale needs to be a power of two!')
     if scene.save_path == '':
         error_messages.append('Save path cannot be empty!')
-    if scene.splats and scene.render.image_settings.file_format != 'PNG':
-        error_messages.append('Gaussian Splatting requires PNG file extensions!')
     return error_messages
 
 # camera intrinsics
@@ -94,19 +93,91 @@ def get_camera_intrinsics(scene, camera):
         'aabb_scale': scene.aabb
     }
 
-    return {'camera_angle_x': camera_angle_x} if scene.nerf else camera_intr_dict
+    return camera_intr_dict
 
 def get_camera_extrinsics(scene, camera_list):
-    camera_extr_dict = []
-    for camera in camera_list:
-        name = camera[1]
-        cam_obj = scene.objects[name]
-        cam_data = {
-            'camera_object': cam_obj.name,
-            'transform_matrix': listify_matrix(cam_obj.matrix_world)
-        }
-        camera_extr_dict.append(cam_data)
-    return camera_extr_dict
+
+    camera_extrinsics = []
+
+    if scene.cam_distribution:
+        # if cameras are static, only one set of extrinsics is needed
+        repetitions = 1
+    else:
+        repetitions = scene.final_frame_nr - scene.first_frame_nr + 1
+
+    for rep in range(repetitions): # iterate over frames
+        bpy.context.scene.frame_set(rep+1) # set the context to the current frame
+        frame_extrinsics = []
+
+        for camera in camera_list:
+            name = camera[1]
+            cam_obj = scene.objects[name]
+            cam_data = np.array(cam_obj.matrix_world)
+            if scene.coordinate_frame: 
+                cam_data = convert_blender_to_opencv(cam_data) # convert from NeRF/Blender to OpenCV/COLMAP coordinate frame
+            w2c = np.linalg.inv(cam_data) #! invert to get the w2c matrix, not the c2w matrix
+            frame_extrinsics.append(listify_matrix(w2c))
+        camera_extrinsics.append(frame_extrinsics)
+    
+    if scene.cam_distribution:
+        camera_extrinsics = np.tile(camera_extrinsics, (scene.final_frame_nr - scene.first_frame_nr + 1, 1, 1, 1))
+    
+    return camera_extrinsics
+
+def convert_blender_to_opencv(pose):
+    '''
+    Convert a camera(!) pose from Blender to OpenCV coordinate frame.
+    Accounting for the differences in both the local camera frame definition and also the global world coordinate frame convention.
+    '''
+    # Step 1: Flip y and z for each camera's orientation, keep locations the same
+    camera_rotation_action = np.diag([1, -1, -1, 1])
+    flipped = pose @ camera_rotation_action
+    # Step 2: Rotate the camera position AND rotation about global x (clockwise), so by -90 degrees
+    rotation_about_x = np.array([[1, 0, 0, 0], [0, 0, -1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
+    rotated = rotation_about_x @ flipped
+    # Step 3: Rotate the camera position AND rotation about global z (counter-clockwise), so by +90 degrees 
+    # rotation_about_z = np.array([[0, 1, 0, 0], [-1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+    rotation_about_y = np.array([[0, 0, 1, 0], [0, 1, 0, 0], [-1, 0, 0, 0], [0, 0, 0, 1]])
+    rotated = rotation_about_y @ rotated
+    return rotated
+
+def rotate_ply_to_opencv(ply_path):
+    '''
+    Rotate a PLY file from Blender to the OpenCV world coordinate frame.
+    '''
+    with(open(ply_path, 'r')) as f: 
+        lines = f.readlines()
+
+    for i,line in enumerate(lines): # find the number of points and the start index
+        if 'element vertex' in line:
+            num_points = int(line.split()[-1])
+        if 'end_header' in line:
+            start_index = i + 1
+            break
+
+    # Identify which lines to alter
+    old_lines = lines[start_index:start_index+num_points]
+    coordinates = np.array([line.split()[:3] for line in old_lines], dtype=np.float64)
+    normals = np.array([line.split()[3:6] for line in old_lines], dtype=np.float64)
+
+    # Step 1: Rotate all vertices and normals about x (clockwise), so by -90 degrees
+    rotation_about_x = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]])
+    rotated = (rotation_about_x @ coordinates.T).T
+    rotated_normals = (rotation_about_x @ normals.T).T
+
+    # Step 2: Rotate all vertices and normals about y (counter-clockwise), so by +90 degrees
+    rotation_about_y = np.array([[0, 0, 1], [0, 1, 0], [-1, 0, 0]])
+    rotated = (rotation_about_y @ rotated.T).T
+    rotated_normals = (rotation_about_y @ rotated_normals.T).T
+
+    # Format the new lines to match the old ones
+    new_lines = [' '.join([str(coord) for coord in rotated[i]] + [str(norm) for norm in rotated_normals[i]]) + ' ' + ' '.join(old_lines[i].split()[6:]) + '\n' for i in range(num_points)]
+    new_lines = [str.replace(line, '0.0 ', '0 ') for line in new_lines]
+    # And save the file with the new lines
+    lines[start_index:start_index+num_points] = new_lines
+    with open(ply_path, 'w') as f:
+        f.writelines(lines)
+    return
 
 def create_sphere(context):
     scene = context.scene
@@ -131,7 +202,83 @@ def visualize_sphere(self, context):
             bpy.data.objects[SPHERE_NAME].hide_set(False)
         else:
             bpy.data.objects[SPHERE_NAME].hide_set(True)
+    return
 
+def save_log_file(scene, focal_length, directory):
+    now = datetime.datetime.now()
+
+    logdata = {
+        'PlenoBlenderNeRF Version': scene.plenoblendernerf_version,
+        'Date and Time' : now.strftime("%d/%m/%Y %H:%M:%S"),
+        'AABB': scene.aabb,
+        'Save Path': scene.save_path
+    }
+
+    logdata['Sphere Location'] = str(list(scene.sphere_location))
+    logdata['Sphere Rotation'] = str(list(scene.sphere_rotation))
+    logdata['Sphere Scale'] = str(list(scene.sphere_scale))
+    logdata['Sphere Radius'] = scene.sphere_radius
+    logdata['Lens'] = str(focal_length) + ' mm'
+    logdata['Seed'] = scene.seed
+    logdata['Number of Frames'] = scene.frame_end - scene.frame_start + 1
+    logdata['Number of Cameras'] = scene.nb_cameras
+    logdata['Upper Views'] = scene.upper_views
+    logdata['Dataset Name'] = scene.dataset_name
+    logdata['Camera Distribution'] = 'Random per-frame' if scene.cam_distribution else 'Static uniform'
+    logdata['Camera Coordinate Frame'] = 'NeRF/Blender' if scene.coordinate_frame else 'OpenCV/COLMAP'
+
+    save_json(directory, filename='log.txt', data=logdata)
+    return
+
+# export vertex colors for each visible mesh
+def save_splats_ply(scene, directory):
+
+    bpy.context.scene.frame_set(scene.first_frame_nr) # set the context to the first frame!
+
+    TMP_VERTEX_COLORS = 'plenoblendernerf_vertex_colors_tmp'
+    # create temporary vertex colors
+    for obj in scene.objects:
+        if obj.type == 'MESH':
+            if not obj.data.vertex_colors:
+                obj.data.vertex_colors.new(name=TMP_VERTEX_COLORS)
+
+    if bpy.context.object is None or bpy.context.active_object is None:
+        bpy.context.view_layer.objects.active = bpy.data.objects[0]
+
+    init_mode = bpy.context.object.mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    init_active_object = bpy.context.active_object
+    init_selected_objects = bpy.context.selected_objects
+    bpy.ops.object.select_all(action='DESELECT')
+
+    # select only visible meshes
+    for obj in scene.objects:
+        if obj.type == 'MESH' and is_object_visible(obj):
+            obj.select_set(True)
+
+    # save ply file
+    bpy.ops.wm.ply_export(filepath=os.path.join(directory, 'points3d.ply'), export_normals=True, export_colors='SRGB', export_attributes=False, export_triangulated_mesh=True, ascii_format=True)
+    if scene.coordinate_frame:
+        bpy.ops.wm.ply_export(filepath=os.path.join(directory, 'points3d(in_nerf_coordinate_frame).ply'), export_normals=True, export_attributes=False, ascii_format=True)
+        rotate_ply_to_opencv(os.path.join(directory, 'points3d.ply'))
+
+    # remove temporary vertex colors
+    for obj in scene.objects:
+        if obj.type == 'MESH' and is_object_visible(obj):
+            if obj.data.vertex_colors:
+                obj.data.vertex_colors.remove(obj.data.vertex_colors[TMP_VERTEX_COLORS])
+
+    bpy.context.view_layer.objects.active = init_active_object
+    bpy.ops.object.select_all(action='DESELECT')
+
+    # reselect previously selected objects
+    for obj in init_selected_objects:
+        obj.select_set(True)
+
+    bpy.ops.object.mode_set(mode=init_mode)
+    return
+    
 # check whether an object is visible in render
 def is_object_visible(obj):
     if obj.hide_render:
@@ -204,10 +351,39 @@ def upd_on():
     can_scene_upd = properties_ui
     can_properties_upd = properties_desgraph
 
+def organise_folder_structure(directory):
+    ''' 
+    Organise the output folder structure.
+    Follows the structure from Dynamic 3D Gaussians.
+    '''
+    # find all files ending in png jpg jpeg
+    file_extension = bpy.context.scene.render.image_settings.file_format.lower()
+    img_files = sorted([name for name in os.listdir(directory) if name.lower().endswith(file_extension)])
+
+    if not img_files:
+        return
+    else:
+        for image in img_files:
+            frame_str, camera_str = image.split('.')[0].split('_')
+            frame_num = int(frame_str)
+            camera_num = int(camera_str)
+
+            # Create camera folder if it doesn't exist
+            camera_folder = os.path.join(directory, str(camera_num))
+            os.makedirs(camera_folder, exist_ok=True)
+
+            current_path = os.path.join(directory, image)
+            new_path = os.path.join(camera_folder, 'ims', f"{frame_num:06d}.{file_extension}")
+            shutil.move(current_path, new_path)
+    return
+
 # reset properties back to intial
 @persistent
 def post_render(scene):
     if scene.rendering: # execute this function only when rendering with addon
+
+        organise_folder_structure(scene.render.filepath) # organise folder structure into subfolders
+
         dataset_name = scene.dataset_name
         # do some clean up of the scene here if you want
         scene.rendering = False
