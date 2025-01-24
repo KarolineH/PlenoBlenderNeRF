@@ -34,9 +34,9 @@ def train_test_split(dataset_path, test_cameras=[]):
     test_metadata['cam_id'] = np.tile(np.asarray(test_cameras), (num_frames,1)).tolist()
 
     with open(os.path.join(dataset_path, 'train_meta.json'), 'w') as f:
-        json.dump(train_metadata, f)
+        json.dump(train_metadata, f, indent=4)
     with open(os.path.join(dataset_path, 'test_meta.json'), 'w') as f:
-        json.dump(test_metadata, f)
+        json.dump(test_metadata, f, indent=4)
     return
 
 
@@ -89,7 +89,7 @@ def create_segmentation_masks(dataset_path):
 
 
 if __name__ == '__main__':
-    dataset_path = '/media/karo/Data1/karo/synthetic_movement_dataset/scenes/rotation'
+    dataset_path = '/media/karo/Data1/karo/synthetic_movement_dataset/DATA/rotation'
     # create_segmentation_masks(dataset_path)
-    # train_test_split(dataset_path, test_cameras=[3,9,20,31])
+    train_test_split(dataset_path, test_cameras=[3,9,20,31])
     sample_dense_pc(dataset_path)
