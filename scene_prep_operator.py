@@ -47,6 +47,7 @@ class ScenePrep(bpy.types.Operator):
             points = scene.sphere_radius * np.array(scene.sphere_scale) * unit_vectors
             overall_rotation = mathutils.Euler(scene.sphere_rotation).to_matrix() # in case the sphere is rotated in the scene
             points = (np.array(overall_rotation) @ points.T).T
+            points = points + np.array(np.array(scene.sphere_location))
             cam_poses.append(points)
 
         result = np.stack(cam_poses) # numpy array of size [num_repetitions, num_cameras, 3] containing the camera position coordinates (xyz)
@@ -73,6 +74,7 @@ class ScenePrep(bpy.types.Operator):
         points = scene.sphere_radius * np.array(scene.sphere_scale) * unit_vectors
         overall_rotation = mathutils.Euler(scene.sphere_rotation).to_matrix() # in case the sphere is rotated in the scene
         points = (np.array(overall_rotation) @ points.T).T
+        points = points + np.array(np.array(scene.sphere_location))
         result = np.expand_dims(points, axis=0) # array of size [1, num_cameras, 3] containing the camera position coordinates (xyz)
         return result
 
