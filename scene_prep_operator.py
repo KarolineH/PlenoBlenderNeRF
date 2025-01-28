@@ -34,12 +34,15 @@ class ScenePrep(bpy.types.Operator):
         cam_poses = []
         for rep in range(num_repetitions):
             thetas = np.array([rng.random() * 2 * np.pi for rng in rngs]) # this is different each time it is called, but if rngs is regenerated with the same seed, the same result will be returned
-            phis = np.array([np.arccos(1 - 2 * rng.random()) for rng in rngs]) # ensure uniform sampling from unit sphere
+            if scene.view_selection == 'mid-section':
+                phis = np.array([np.arccos(1 - 2 * (0.1 + 0.8 * rng.random())) for rng in rngs])
+            else:
+                phis = np.array([np.arccos(1 - 2 * rng.random()) for rng in rngs]) # ensure uniform sampling from unit sphere
 
             # generate the position component
             unit_xs = np.cos(thetas) * np.sin(phis) 
             unit_ys = np.sin(thetas) * np.sin(phis)
-            if scene.upper_views:
+            if scene.view_selection == 'upper':
                 unit_zs = [abs(np.cos(phi)) for phi in phis] # if upper views is active, only distribute on the upper hemisphere
             else:
                 unit_zs = [np.cos(phi) for phi in phis]
@@ -62,8 +65,10 @@ class ScenePrep(bpy.types.Operator):
         # instead of random, distribute the cameras uniformly on a sphere
         phi = np.pi * (np.sqrt(5.) - 1.)  # golden angle in radians
         indices = np.arange(0, num_cameras, dtype=float) + 0.5  # to place the points in the middle of the bins
-        if scene.upper_views:
+        if scene.view_selection == 'upper':
             z = (indices/num_cameras)
+        elif scene.view_selection == 'mid-section':
+            z = 0.9 - (indices / num_cameras) * 1.3  # scaled between [0.9, -0.4], so excluding the top 5% and bottom 30% of the sphere
         else:
             z = 1 - (indices / num_cameras) * 2  # y goes from 1 to -1
         radius = np.sqrt(1 - z * z)  # radius at y

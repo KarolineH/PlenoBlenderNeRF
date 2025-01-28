@@ -41,7 +41,8 @@ class PLENO_UI(bpy.types.Panel):
         layout.prop(scene, 'first_frame_nr')
         layout.prop(scene, 'final_frame_nr')
         layout.prop(scene, 'nb_cameras')
-        layout.prop(scene, 'upper_views', toggle=True)
+        layout.prop(scene, 'view_selection')
+
         layout.label(text='Camera distribution')
         row = layout.row(align=True)
         row.prop(scene, 'cam_distribution', toggle=True, text='per-frame', invert_checkbox=True)

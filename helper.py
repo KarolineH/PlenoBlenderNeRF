@@ -222,7 +222,7 @@ def save_log_file(scene, focal_length, directory):
     logdata['Seed'] = scene.seed
     logdata['Number of Frames'] = scene.frame_end - scene.frame_start + 1
     logdata['Number of Cameras'] = scene.nb_cameras
-    logdata['Upper Views'] = scene.upper_views
+    logdata['View Selection'] = scene.view_selection
     logdata['Dataset Name'] = scene.dataset_name
     logdata['Camera Distribution'] = 'Random per-frame' if scene.cam_distribution else 'Static uniform'
     logdata['Camera Coordinate Frame'] = 'NeRF/Blender' if scene.coordinate_frame else 'OpenCV/COLMAP'
