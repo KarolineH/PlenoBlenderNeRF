@@ -124,6 +124,16 @@ def get_camera_extrinsics(scene, camera_list):
     
     return camera_extrinsics
 
+def remove_trailing_zeros(obj):
+    """Ensures numbers that can be integers are written as integers."""
+    if isinstance(obj, int):
+        return obj
+    if isinstance(obj, float):
+        return int(obj) if obj.is_integer() else obj
+    elif isinstance(obj, list):  # Recursively process lists
+        return [remove_trailing_zeros(item) for item in obj]
+    return obj
+
 def convert_blender_to_opencv(pose):
     '''
     Convert a camera(!) pose from Blender to OpenCV coordinate frame.

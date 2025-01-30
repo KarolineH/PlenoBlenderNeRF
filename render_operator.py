@@ -25,10 +25,10 @@ class RenderScene(bpy.types.Operator):
         file_names_nested = [[f"{camera_id}/{frame_id}.{scene.render.image_settings.file_format.lower()}" for camera_id in camera_ids] for frame_id in frame_ids]
 
         meta_data = {}
-        meta_data['w'] = intrinsics['w']
-        meta_data['h'] = intrinsics['h']
-        meta_data['k'] = np.tile(camera_matrix, (nr_frames, scene.nb_cameras, 1, 1)).tolist()
-        meta_data['w2c'] = extrinsics.tolist()
+        meta_data['w'] = helper.remove_trailing_zeros(intrinsics['w'])
+        meta_data['h'] = helper.remove_trailing_zeros(intrinsics['h'])
+        meta_data['k'] = helper.remove_trailing_zeros(np.tile(camera_matrix, (nr_frames, scene.nb_cameras, 1, 1)).tolist())
+        meta_data['w2c'] = helper.remove_trailing_zeros(extrinsics.tolist())
         meta_data['fn'] = file_names_nested
         meta_data['cam_id'] = [[int(index) for index in range(scene.nb_cameras)] for _ in range(nr_frames)]
 
