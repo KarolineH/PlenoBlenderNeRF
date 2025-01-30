@@ -21,11 +21,11 @@ def train_test_split(dataset_path, test_cameras=[]):
     test_metadata['w'] = full_metadata['w']
     test_metadata['h'] = full_metadata['h']
 
-    train_metadata['k'] = np.tile(np.asarray(full_metadata['k'])[0,0], (num_frames, len(train_cameras), 1, 1)).tolist()
-    test_metadata['k'] = np.tile(np.asarray(full_metadata['k'])[0,0], (num_frames, len(test_cameras), 1, 1)).tolist()
+    train_metadata['k'] = remove_trailing_zeros(np.tile(np.asarray(full_metadata['k'])[0,0], (num_frames, len(train_cameras), 1, 1)).tolist())
+    test_metadata['k'] = remove_trailing_zeros(np.tile(np.asarray(full_metadata['k'])[0,0], (num_frames, len(test_cameras), 1, 1)).tolist())
 
-    test_metadata['w2c'] = np.asarray(full_metadata['w2c'])[:,test_cameras,:,:].tolist()
-    train_metadata['w2c'] = np.asarray(full_metadata['w2c'])[:,train_cameras,:,:].tolist()
+    test_metadata['w2c'] = remove_trailing_zeros(np.asarray(full_metadata['w2c'])[:,test_cameras,:,:].tolist())
+    train_metadata['w2c'] = remove_trailing_zeros(np.asarray(full_metadata['w2c'])[:,train_cameras,:,:].tolist())
 
     test_metadata['fn'] = np.asarray(full_metadata['fn'])[:,test_cameras].tolist()
     train_metadata['fn'] = np.asarray(full_metadata['fn'])[:,train_cameras].tolist()
@@ -39,6 +39,14 @@ def train_test_split(dataset_path, test_cameras=[]):
         json.dump(test_metadata, f, indent=4)
     return
 
+def remove_trailing_zeros(in_obj):
+    if isinstance(in_obj, int):
+        return in_obj
+    if isinstance(in_obj, float):
+        return int(in_obj) if in_obj.is_integer() else in_obj
+    if isinstance(in_obj, list):
+        return [remove_trailing_zeros(item) for item in in_obj]
+    return in_obj
 
 def sample_dense_pc(dataset_path, size=150000):
     '''
@@ -89,7 +97,15 @@ def create_segmentation_masks(dataset_path):
 
 
 if __name__ == '__main__':
-    dataset_path = '/media/karo/Data1/karo/synthetic_movement_dataset/DATA/rotation'
-    # create_segmentation_masks(dataset_path)
-    train_test_split(dataset_path, test_cameras=[3,9,20,31])
-    sample_dense_pc(dataset_path)
+    import shutil
+    folder = '/home/kh790/Desktop/synthetic_blender_data/rendered'
+    for item in os.listdir(folder):
+        scene_path = os.path.join(folder, item.split('.')[0])
+        # create_segmentation_masks(scene_path)
+        train_test_split(scene_path, test_cameras=[3,9,20,31])
+        # sample_dense_pc(scene_path)
+
+    # dataset_path = '/media/karo/Data1/karo/synthetic_movement_dataset/DATA/rotation'
+    # # create_segmentation_masks(dataset_path)
+    # train_test_split(dataset_path, test_cameras=[3,13,20,35])
+    # sample_dense_pc(dataset_path)
