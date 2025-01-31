@@ -16,10 +16,10 @@ def train_test_split(dataset_path, test_cameras=[]):
     train_cameras = list(range(original_num_cam))
     [train_cameras.remove(ID) for ID in test_cameras]
 
-    train_metadata['w'] = full_metadata['w']
-    train_metadata['h'] = full_metadata['h']
-    test_metadata['w'] = full_metadata['w']
-    test_metadata['h'] = full_metadata['h']
+    train_metadata['w'] = remove_trailing_zeros(full_metadata['w'])
+    train_metadata['h'] = remove_trailing_zeros(full_metadata['h'])
+    test_metadata['w'] = remove_trailing_zeros(full_metadata['w'])
+    test_metadata['h'] = remove_trailing_zeros(full_metadata['h'])
 
     train_metadata['k'] = remove_trailing_zeros(np.tile(np.asarray(full_metadata['k'])[0,0], (num_frames, len(train_cameras), 1, 1)).tolist())
     test_metadata['k'] = remove_trailing_zeros(np.tile(np.asarray(full_metadata['k'])[0,0], (num_frames, len(test_cameras), 1, 1)).tolist())
