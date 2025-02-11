@@ -10,7 +10,7 @@ Blender add-on for recording plenoptic (multi-view) videos in NeRF/3DGS format o
 5. After installation the plugin GUI is lcoated in the sidebar menu. Press 'n' key to toggle the sidebar.
 
 ## Usage
-![Add-on GUI preview](https://github.com/[username]/[reponame]/blob/[branch]/image.jpg?raw=true)
+![preview](https://github.com/user-attachments/assets/9e3c9615-9b1d-46cc-b603-cd7c25d535c5)
 
 ## Acknowledgement
 This project started out as a fork from [BlenderNeRF](github.com/maximeraafat/BlenderNeRF), go check out their work as well.
