@@ -2,9 +2,9 @@
 Blender add-on for recording plenoptic (multi-view) videos in NeRF/3DGS format of dynamic/animated scenes within Blender. 
 If you have any comments or requests, please submit an issue. 
 
-## Functionaltiy
+## Functionality
 This add-on automatically sets up a 360° multi-camera array to render your animated scenes from multiple views. It also records the complete meta-data required for NeRF/Gaussian Splatting data sets (camera intrinsics, extrinsics, initial point cloud...).
-You can chose to keep all cameras static across the frames of your animation, or randomly re-distribute all cameras at each single frame.
+You can choose to keep all cameras static across the frames of your animation, or randomly re-distribute all cameras at each single frame.
 The add-on currently supports three different 360° camera setups, where all cameras are facing inwards towards the centre of the scene.
 - Cameras placed on a full sphere
 - Cameras placed on the upper hemisphere
@@ -15,11 +15,11 @@ The add-on currently supports three different 360° camera setups, where all cam
 2. Open Blender (4.0.0 or above)
 3. In Blender, head to **Edit > Preferences > Add-ons**, and select **Install From Disk** under the drop icon
 4. Select the downloaded **ZIP** file
-5. After installation the plugin GUI is lcoated in the sidebar menu. Press 'n' key to toggle the sidebar.
+5. After installation, the add-on GUI is located in the sidebar menu. Press 'n' key to toggle the sidebar.
 
 
 ## Usage
-1. Design your desired scene, including animations. Make sure to set all relevant Blender settings, including camera parameters, rendering engine, framerate, output format etc. as you would for an individual render.
+1. Design your desired scene, including animations. Make sure to set all relevant Blender settings, including camera parameters, rendering engine, frame rate, output format etc., just as you would for an individual render.
 2. Navigate to the PlenoBlenderNeRF add-on GUI in the sidebar.
 3. Tip: Make sure the "Preview Sphere" switch in the PlenoBlenderNeRF add-on GUI is toggled ON so you can see more easily how each of the other parameters affects camera placement.  
 4. Set all parameters in the PlenoBlenderNeRF add-on GUI. I recommend you play around with the settings a little bit.
@@ -32,7 +32,7 @@ The add-on currently supports three different 360° camera setups, where all cam
   - NeRF/OpenCV Toggle: This toggle switches the output data format between the **OpenCV/COLMAP** camera coordinate frame convention and the **NeRF/Blender** frame convention. (E.g. [Dynamic 3D Gaussians](https://github.com/JonathonLuiten/Dynamic3DGaussians) uses the OpenCV camera coordinate system, while the standard for NeRF methods is the Blender coordinate system)
   - Save Path: Select a target directory for your data output.
   - Dataset Name: Specify a name for your output directory. Make sure to change this each time you render to avoid overwriting data.
-  - Camera: Select a template camera object. This pre-selects the initila camera object by default. Either edit this Camera Object to suit your scene or add your own and select it here via drag-and-drop. The selectred camera object will serve as a template,. which is duplicated for each additional camera in the plenoptic camera setup.
+  - Camera: Select a template camera object. This pre-selects the initial camera object by default. You can either edit this camera object to suit your scene or add your own and select it here via drag-and-drop. The selected camera object will serve as a template, which is duplicated for each additional camera in the plenoptic setup.
   - Location, Rotation, Scale: Use this to control the placement of the (invisible) sphere on whose surface your cameras will be placed. Use the Scale settings only if you need to scale differently along different axes — otherwise, change the radius settings instead.
   - Radius: The radius of the (invisible) sphere on whose surface your cameras will be placed.
   - Preview Sphere: Toggle this on to preview the invisible sphere on whose surface your cameras will be placed. This will not show in your renders.
@@ -40,9 +40,9 @@ The add-on currently supports three different 360° camera setups, where all cam
   - Start Frame Number: The first frame of your animation (typically = 1).
   - End Frame Number: The last frame of your animation.
   - Cameras: The number of cameras/different views from which you want to render your scene. Each camera will render each frame.
-  - View Selection: Full = Cameras will be placed on the full sphere surface; Upper = Cameras will be placed on the upper hemisphere; Mid-section = Cameras will be placed on the sphere but ommitting the top 5% and bottom 30% of the sphere surface.
-  - Camera distribution toggle: Toggle between static cameras (once generated, each camera will remeain static across the animation/across frames) and per-frame (each camera will randomly be re-positioned for each frame of the animation).
-4. Once you are happy with the settings, make sure to **hit RESET SCENE and then SET UP SCENE again**, so that all of your change in the GUI are definitely applied before rendering.
+  - View Selection: Full = Cameras will be placed on the full sphere surface; Upper = Cameras will be placed on the upper hemisphere; Mid-section = Cameras will be placed on the sphere but omitting the top 5% and bottom 30% of the sphere surface.
+  - Camera distribution toggle: Toggle between static cameras (once generated, each camera will remain static across the animation/across frames) and per-frame (each camera will randomly be re-positioned for each frame of the animation).
+4. Once you are happy with the settings, make sure to **hit RESET SCENE and then SET UP SCENE again**, so that all of your changes in the GUI are definitely applied before rendering.
 (5. Recommended: Play back your animation one last time, also switch into Camera View in Blender to check if you are happy with the camera placement.
 6. Hit 'RENDER'
 
