@@ -1,5 +1,6 @@
 # PlenoBlenderNeRF
 Blender add-on for recording plenoptic (multi-view) videos in NeRF/3DGS format of dynamic/animated scenes within Blender. 
+If you have any comments or requests, please submit an issue. 
 
 ## Functionaltiy
 This add-on automatically sets up a 360° multi-camera array to render your animated scenes from multiple views. It also records the complete meta-data required for NeRF/Gaussian Splatting data sets (camera intrinsics, extrinsics, initial point cloud...).
@@ -41,9 +42,20 @@ The add-on currently supports three different 360° camera setups, where all cam
   - Cameras: The number of cameras/different views from which you want to render your scene. Each camera will render each frame.
   - View Selection: Full = Cameras will be placed on the full sphere surface; Upper = Cameras will be placed on the upper hemisphere; Mid-section = Cameras will be placed on the sphere but ommitting the top 5% and bottom 30% of the sphere surface.
   - Camera distribution toggle: Toggle between static cameras (once generated, each camera will remeain static across the animation/across frames) and per-frame (each camera will randomly be re-positioned for each frame of the animation).
-4. Once you are happy with the settings, make sure to hit RESET SCENE and then SET UP SCENE again, so that all of your change in the GUI are definitely processed before rendering.
+4. Once you are happy with the settings, make sure to **hit RESET SCENE and then SET UP SCENE again**, so that all of your change in the GUI are definitely applied before rendering.
 (5. Recommended: Play back your animation one last time, also switch into Camera View in Blender to check if you are happy with the camera placement.
 6. Hit 'RENDER'
+
+## Optional Python post-processing functions:
+7. Download the /scripts/ folder from this repo (either clone the repo or extract the subfolder from the zip file).
+Navigate to the scripts folder, then install the requirements by running 
+`pip install -r requirements.txt`
+8. Find the file **scripts/dataset_post_processing.py** which was created with the input requirements of [Dynamic 3D Gaussians](https://github.com/JonathonLuiten/Dynamic3DGaussians) in mind. It has three main functions:
+  - If you rendered your images with an alpha channel (in Blender, set Output format to png with RGBA color) you can use this to create foreground/background segmentation masks for all of your rendered images
+  - You can use this to split your data into a training and test set. It creates separate train_meta.json and test_meta.json meta data files.
+  - You can use this to sample a dense point cloud in .npz format from the original sparse point cloud in .ply format that Blender outputs.
+9. Edit the file path at the bottom of the script to point to your rendered data sets, then run:
+  `python dataset_post_processing.py`
  
 
 ## Acknowledgement
