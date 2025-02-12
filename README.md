@@ -58,7 +58,7 @@ Navigate to the scripts folder, then install the requirements by running
     Consider changing the two variables
     - point_cloud_size: Number of points sampled for the dense point cloud.
     - test_cameras: Choose which cameras to use for testing only.
-Then run:
+11. Then run:
   `python dataset_post_processing.py`
  
 ## Output
