@@ -54,9 +54,24 @@ Navigate to the scripts folder, then install the requirements by running
   - If you rendered your images with an alpha channel (in Blender, set Output format to png with RGBA color) you can use this to create foreground/background segmentation masks for all of your rendered images
   - You can use this to split your data into a training and test set. It creates separate train_meta.json and test_meta.json meta data files.
   - You can use this to sample a dense point cloud in .npz format from the original sparse point cloud in .ply format that Blender outputs.
-10. Edit the file path at the bottom of the script to point to your rendered data sets, then run:
+10. Edit the file path at the bottom of the script to point to your rendered data sets.
+    Consider changing the two variables
+    - point_cloud_size: Number of points sampled for the dense point cloud.
+    - test_cameras: Choose which cameras to use for testing only.
+Then run:
   `python dataset_post_processing.py`
  
+## Output
+Your output should contain:
+- **/ims/** Image folder, images are number by frame and organised in one folder per camera.
+- **log.txt** A record of your PlenoBlenderNeRF settings.
+- **meta.json** Meta-data for each image, including camera intrinsics and extrinsics. The format follows the requirements of [Dynamic 3D Gaussians](https://github.com/JonathonLuiten/Dynamic3DGaussians).
+- **points3d.ply** A sparse point cloud sampled from the meshes in the first frame of your animation.
+
+After the optional post-processing you will find these additional outputs:
+- **test_meta.json** & **train_meta.json**, Separate meta-data files splitting the data into training and test sets.
+- **/seg/** Binary segmentation mask folder, following the same structure as the image folder
+- **init_pt_cld.npz** and **init_pt_cld.ply** Dense PointClouds sampled from the first frame of the animation. Default size is 150,000 points. You can change this in the post-processing script.
 
 ## Acknowledgement
 This project started out as a fork from [BlenderNeRF](github.com/maximeraafat/BlenderNeRF), go check out their work as well.
