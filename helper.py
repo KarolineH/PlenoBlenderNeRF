@@ -234,8 +234,8 @@ def save_log_file(scene, focal_length, directory):
     logdata['Number of Cameras'] = scene.nb_cameras
     logdata['View Selection'] = scene.view_selection
     logdata['Dataset Name'] = scene.dataset_name
-    logdata['Camera Distribution'] = 'Random per-frame' if scene.cam_distribution else 'Static uniform'
-    logdata['Camera Coordinate Frame'] = 'NeRF/Blender' if scene.coordinate_frame else 'OpenCV/COLMAP'
+    logdata['Camera Distribution'] = 'Static uniform' if scene.cam_distribution else 'Random per-frame'
+    logdata['Camera Coordinate Frame'] = 'OpenCV/COLMAP' if scene.coordinate_frame else 'NeRF/Blender'
 
     save_json(directory, filename='log.txt', data=logdata)
     return
