@@ -270,7 +270,7 @@ def save_splats_ply(scene, directory):
     # save ply file
     bpy.ops.wm.ply_export(filepath=os.path.join(directory, 'points3d.ply'), export_normals=True, export_colors='SRGB', export_attributes=False, export_triangulated_mesh=True, ascii_format=True)
     if scene.coordinate_frame:
-        bpy.ops.wm.ply_export(filepath=os.path.join(directory, 'points3d(in_nerf_coordinate_frame).ply'), export_normals=True, export_attributes=False, ascii_format=True)
+        bpy.ops.wm.ply_export(filepath=os.path.join(directory, 'points3d(in_nerf_coordinate_frame).ply'), export_normals=True, export_colors='SRGB', export_attributes=False, export_triangulated_mesh=True, ascii_format=True)
         rotate_ply_to_opencv(os.path.join(directory, 'points3d.ply'))
 
     # remove temporary vertex colors

@@ -85,10 +85,7 @@ for frame in range(scene.first_frame_nr, scene.final_frame_nr + 1):
     filename = f"frame_{frame:04d}.ply"
     filepath = os.path.join(output_path, filename)
 
-    if bpy.data.filepath.split('/')[-1].split('.')[0] == 'hole_formation':
-        bpy.ops.wm.ply_export(filepath=filepath, export_selected_objects=True, export_normals=True, export_colors='NONE', export_attributes=False, export_triangulated_mesh=True, ascii_format=True)
-    else:
-        bpy.ops.wm.ply_export(filepath=filepath, export_selected_objects=True, export_normals=True, export_colors='NONE', export_attributes=False, export_triangulated_mesh=False, ascii_format=True)
+    bpy.ops.wm.ply_export(filepath=filepath, export_selected_objects=True, export_normals=True, export_colors='NONE', export_attributes=False, export_triangulated_mesh=True, ascii_format=True)
     rotate_ply_to_opencv(filepath)
 
     bpy.context.view_layer.objects.active = init_active_object
