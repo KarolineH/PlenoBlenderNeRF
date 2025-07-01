@@ -20,10 +20,10 @@ if __name__ == "__main__":
     data_dir = "/media/karo/Data1/karo/synthetic_movement_dataset"
     out_dir = os.path.join(data_dir, 'per_frame_pcs')
 
-    for sequence in os.listdir(os.path.join(data_dir, 'per_frame_ply_exports')):
-        ply_files = os.listdir(os.path.join(data_dir, 'per_frame_ply_exports', sequence))
+    for sequence in os.listdir(os.path.join(data_dir, 'per_frame_plys')):
+        ply_files = os.listdir(os.path.join(data_dir, 'per_frame_plys', sequence))
         for ply_file in ply_files:
-            ply_path = os.path.join(data_dir, 'per_frame_ply_exports', sequence, ply_file)
+            ply_path = os.path.join(data_dir, 'per_frame_plys', sequence, ply_file)
             out_path = os.path.join(out_dir, sequence, ply_file.replace('.ply', '.npz'))
             os.makedirs(os.path.join(out_dir, sequence), exist_ok=True)
             sample_dense_pc(ply_path, out_path, size=300000)
