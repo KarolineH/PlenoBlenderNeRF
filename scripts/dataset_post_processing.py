@@ -3,7 +3,6 @@ import os
 import numpy as np
 import json
 from PIL import Image
-import shutil
 
 def train_test_split(dataset_path, test_cameras=[]):
 
@@ -50,22 +49,33 @@ def remove_trailing_zeros(in_obj):
         return [remove_trailing_zeros(item) for item in in_obj]
     return in_obj
 
-def sample_dense_pc(dataset_path, size=150000):
+def sample_dense_pc(dataset_path, first_frame=False, size=150000):
     '''
-    Sample a dense point cloud from the initial state of the scene (frame 1)
+    Sample a dense point cloud from .ply file 
     and save it as a .npz file. The array is saved in the format [x, y, z, r, g, b].
     The default size of 150,000 points is derived from the average size in the Dynamic 3D Gaussians dataset.
     '''
-
-    mesh = o3d.io.read_triangle_mesh(os.path.join(dataset_path, 'points3d.ply'))
-    pc = mesh.sample_points_uniformly(number_of_points=size)
-    points = np.asarray(pc.points)
-    colours = np.asarray(pc.colors)
-    nppc = np.append(points, colours, axis=1)
-    nppc = np.append(nppc, np.ones([size,1]), axis=1) # Add a column of ones as segmentation mask
-    out_file = os.path.join(dataset_path, 'init_pt_cld.npz')
-    np.savez(out_file, data=nppc)
-    o3d.io.write_point_cloud(os.path.join(dataset_path, 'init_pt_cld.ply'), pc)
+    if first_frame:
+        mesh = o3d.io.read_triangle_mesh(os.path.join(dataset_path, 'points3d.ply'))
+        pc = mesh.sample_points_uniformly(number_of_points=size)
+        points = np.asarray(pc.points)
+        colours = np.asarray(pc.colors)
+        nppc = np.append(points, colours, axis=1)
+        nppc = np.append(nppc, np.ones([size,1]), axis=1) # Add a column of ones as segmentation mask
+        out_file = os.path.join(dataset_path, 'init_pt_cld.npz')
+        np.savez(out_file, data=nppc)
+        o3d.io.write_point_cloud(os.path.join(dataset_path, 'init_pt_cld.ply'), pc)
+    else:
+        ply_files = os.listdir(os.path.join(dataset_path, 'per_frame_plys'))
+        for mesh in ply_files:
+            ply_path = os.path.join(dataset_path, 'per_frame_plys', mesh)
+            out_path = os.path.join(dataset_path, 'per_frame_pcs', mesh.replace('.ply', '.npz'))
+            os.makedirs(os.path.join(dataset_path, 'per_frame_pcs'), exist_ok=True)
+            
+            mesh = o3d.io.read_triangle_mesh(ply_path)
+            pc = mesh.sample_points_uniformly(number_of_points=size)
+            points = np.asarray(pc.points)
+            np.savez(out_path, data=points)
     return
 
 def create_segmentation_masks(dataset_path):
@@ -74,7 +84,7 @@ def create_segmentation_masks(dataset_path):
     then this function will create a binary mask for each image. Foreground pixels are set to 255, background to 0.
     '''
 
-    input_img_dir = os.path.join(dataset_path, 'ims/')
+    input_img_dir = os.path.join(dataset_path, 'alpha_ims/')
     output_img_dir = os.path.join(dataset_path, 'seg/')
 
     def process_image(input_path, output_path):
@@ -151,41 +161,41 @@ def alpha_composite_linear(fg_img, bg_color=(0, 0, 0)):
 
 def bg_composite(dataset_path, bg=(0,0,0)):
     '''
-    Moves the original (rendered) RGBA images from the '/ims/' folder to /alpha_ims/
-    and replaces the images with alpha-composited RGB versions.
+    Alpha-composites images from /alpha_ims/ with a solid background to '/ims/'
     Default background colour is black (0,0,0).  
     '''
-    input_img_dir = os.path.join(dataset_path, 'ims/')
-    alpha_img_dir = os.path.join(dataset_path, 'alpha_ims/')
+    img_dir = os.path.join(dataset_path, 'ims/')
+    alpha_dir = os.path.join(dataset_path, 'alpha_ims/')
 
     # Walk through the input directory and replicate the structure
-    for root, _, files in os.walk(input_img_dir):
+    for root, _, files in os.walk(alpha_dir):
         for filename in files:
             if filename.endswith(".png"):
                 input_path = os.path.join(root, filename)
-                relative_path = os.path.relpath(input_path, input_img_dir)
-                alpha_path = os.path.join(alpha_img_dir, relative_path)
+                relative_path = os.path.relpath(input_path, alpha_dir)
+                new_path = os.path.join(img_dir, relative_path)
                 # Ensure the output directory exists
-                os.makedirs(os.path.dirname(alpha_path), exist_ok=True)
-
-                shutil.copyfile(input_path, alpha_path)
+                os.makedirs(os.path.dirname(img_dir), exist_ok=True)
 
                 im = Image.open(input_path).convert("RGBA")
                 comp = alpha_composite_linear(im, bg_color=bg)
-                comp.save(input_path)
-    print(f"Alpha-composited images saved to {input_img_dir}.")
+                comp.save(new_path)
+    print(f"Alpha-composited images saved to {img_dir}.")
     return
 
 if __name__ == '__main__':
 
     ## ------------------------------------------------------------------  
     ''' USER INPUTS '''
-    folder = '/your/dataset/location/' # This folder can contain multiple data sets generated by the add-on, each in its own subfolder
+    folder = '/media/karo/Data1/karo/synthetic_movement_dataset/rendered_scenes/rendered' # This folder can contain multiple data sets generated by the add-on, each in its own subfolder
+    folder = '/home/karo/Desktop/'
     point_cloud_size = 150000
     test_cameras = [3,9,20,31]
     ##-----------------------------------------------------------------
 
     for item in os.listdir(folder):
+        if item != 'TEST':
+            continue
         scene_path = os.path.join(folder, item.split('.')[0])
         
         '''1) Use this function to produce crude foreground/background segmentation masks for all images, if your images have an Alpha Channel (RGBA)'''
@@ -195,7 +205,10 @@ if __name__ == '__main__':
         train_test_split(scene_path, test_cameras=test_cameras)
         
         '''3) Use this function to sample a dense point cloud from the sparse point cloud Blender outputs (first frame of your animation)'''
-        sample_dense_pc(scene_path, size=point_cloud_size)
+        sample_dense_pc(scene_path, first_frame=True, size=point_cloud_size)
 
         '''4) Use this function to composite the RGBA images with a solid background colour.'''
         bg_composite(scene_path, bg=(0,0,0))
+
+        '''5) Use this function to sample dense point clouds from per-frame ply files'''
+        sample_dense_pc(scene_path, first_frame=False, size=300000)

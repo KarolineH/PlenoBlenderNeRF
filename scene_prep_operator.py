@@ -145,6 +145,10 @@ class ScenePrep(bpy.types.Operator):
         scene = context.scene
         template_camera = scene.camera
         focal_length = template_camera.data.lens
+        
+        # Store focal length as scene property for later use during rendering
+        scene.focal_length = focal_length
+        
         # check if camera is selected : next errors depend on an existing camera
         if template_camera == None:
             self.report({'ERROR'}, 'Be sure to have a selected camera!')
@@ -169,7 +173,6 @@ class ScenePrep(bpy.types.Operator):
         os.makedirs(output_path, exist_ok=True)
 
         #np.save(os.path.join(scene.save_path, scene.dataset_name, 'tmp_camera_poses.npy'), poses) # write the temporary array with all camera poses to a file, overwrites each time the scene is set up
-        helper.save_log_file(scene, focal_length, output_path) # log file also overwrites each time the scene is set up
 
         # initial property might have changed since set_init_props update
         scene.init_output_path = scene.render.filepath

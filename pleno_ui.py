@@ -19,6 +19,8 @@ class PLENO_UI(bpy.types.Panel):
         layout.use_property_split = True
         layout.prop(scene, 'aabb')
         layout.prop(scene, 'splats', text='Gaussian Points (PLY file)')
+        layout.prop(scene, 'export_meshes_per_frame', text='Export Meshes Per Frame')
+        layout.prop(scene, 'track_vertex_trajectories', text='Track Vertex Trajectories')
         row = layout.row(align=True)
         row.prop(scene, 'coordinate_frame', toggle=True, text='NeRF', invert_checkbox=True)
         row.prop(scene, 'coordinate_frame', toggle=True, text='OpenCV')

@@ -189,6 +189,32 @@ def rotate_ply_to_opencv(ply_path):
         f.writelines(lines)
     return
 
+def rotate_coords_to_opencv(coords_dict):
+    '''
+    Rotate coordinates from Blender to the OpenCV world coordinate frame.
+    '''
+    # Rotation matrices from your ply example:
+    rotation_about_x = np.array([[1, 0, 0],
+                                 [0, 0, -1],
+                                 [0, 1, 0]])
+    rotation_about_y = np.array([[0, 0, 1],
+                                 [0, 1, 0],
+                                 [-1, 0, 0]])
+
+    new_coords = {}
+
+    for obj, vertices in coords_dict.items():
+        new_coords[obj] = {}
+        for v_idx, frames in vertices.items():
+            new_coords[obj][v_idx] = {}
+            for f_idx, coord in frames.items():
+                coord_np = np.array(coord)
+                rotated = rotation_about_x @ coord_np
+                rotated = rotation_about_y @ rotated
+                new_coords[obj][v_idx][f_idx] = rotated.tolist()
+
+    return new_coords
+
 def create_sphere(context):
     scene = context.scene
     if SPHERE_NAME not in scene.objects.keys() and not scene.sphere_exists:
@@ -288,6 +314,62 @@ def save_splats_ply(scene, directory):
 
     bpy.ops.object.mode_set(mode=init_mode)
     return
+
+def save_meshes_per_frame(scene, out_directory):
+    scene.frame_set(scene.first_frame_nr) # set the context to the first frame!
+
+    for frame in range(scene.first_frame_nr, scene.final_frame_nr + 1):
+        # Loop over frames one by one
+        scene.frame_set(frame)
+        if bpy.context.object is None or bpy.context.active_object is None:
+            bpy.context.view_layer.objects.active = bpy.data.objects[0]
+        bpy.ops.object.mode_set(mode='OBJECT')
+        init_active_object = bpy.context.active_object # Keep record of the active object
+        bpy.ops.object.select_all(action='DESELECT') # Deselect all
+
+        # select only visible meshes
+        for obj in scene.objects:
+            if obj.type == 'MESH' and is_object_visible(obj):
+                obj.select_set(True)   
+    
+        filename = f"frame_{frame:04d}.ply"
+        filepath = os.path.join(out_directory, filename)
+
+        bpy.ops.wm.ply_export(filepath=filepath, export_selected_objects=True, export_normals=True, export_colors='NONE', export_attributes=False, export_triangulated_mesh=True, ascii_format=True)
+        rotate_ply_to_opencv(filepath)
+        # TODO: By default these meshes are saved in OpenCV coordinate frame, the switch so far only affects camera poses, not these meshes
+
+        bpy.context.view_layer.objects.active = init_active_object # Restore the active object
+        bpy.ops.object.select_all(action='DESELECT') # Deselect all again
+    return
+
+def track_vertices(scene, out_file):
+    trajectories = {}
+    for frame in range(scene.first_frame_nr, scene.final_frame_nr + 1):
+        bpy.context.scene.frame_set(frame)
+
+        # Evaluate depsgraph to get modifiers and animations applied
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        mesh_objects = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
+        for obj in mesh_objects:
+            eval_obj = obj.evaluated_get(depsgraph)
+            eval_mesh = eval_obj.to_mesh()
+            world_matrix = eval_obj.matrix_world
+
+            obj_name = obj.name
+            if obj_name not in trajectories:
+                trajectories[obj_name] = {}
+
+            for idx, vert in enumerate(eval_mesh.vertices):
+                world_coord = world_matrix @ vert.co
+                trajectories[obj_name].setdefault(idx, {})[frame] = (world_coord.x, world_coord.y, world_coord.z)
+
+            eval_obj.to_mesh_clear()
+    
+    rotated = rotate_coords_to_opencv(trajectories)
+    with open(out_file, 'w') as f:
+        json.dump(rotated, f, indent=4)
+    return
     
 # check whether an object is visible in render
 def is_object_visible(obj):
@@ -379,7 +461,7 @@ def organise_folder_structure(directory):
             camera_num = int(camera_str)
 
             # Create camera folder if it doesn't exist
-            camera_folder = os.path.join(directory, 'ims', str(camera_num))
+            camera_folder = os.path.join(directory, 'alpha_ims', str(camera_num))
             os.makedirs(camera_folder, exist_ok=True)
 
             current_path = os.path.join(directory, image)

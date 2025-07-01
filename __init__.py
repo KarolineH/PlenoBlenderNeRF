@@ -43,10 +43,13 @@ PROPS = [
     ('view_selection', bpy.props.EnumProperty(name='View Selection', description='Whether to sample views from the whole sphere, upper hemisphere, or middlesection of the training sphere only', default='mid-section', items=[('full', 'full', '', 0), ('upper', 'upper', '', 1), ('mid-section', 'mid-section', '', 2)])),
     ('cam_distribution', bpy.props.BoolProperty(name='Random per-frame', description='Whether to place cameras in fixed uniformly sampled or random per-frame positions', default=False)),
     ('coordinate_frame', bpy.props.BoolProperty(name='Coordinate Frame Convention', description='Whether to use the NeRF/Blender or OpenCV/COLMAP camera coordinate frame convention', default=True)),
+    ('export_meshes_per_frame', bpy.props.BoolProperty(name='Export Meshes Per Frame', description='Whether to export meshes in .ply format at each frame of the animation in addition to just the first frame', default=False)),
+    ('track_vertex_trajectories', bpy.props.BoolProperty(name='Track Vertex Trajectories', description='Whether to track and export trajectories of mesh vertices', default=False)),
 
     # Pleno automatic properties
     ('sphere_exists', bpy.props.BoolProperty(name='Sphere Exists', description='Whether the sphere exists', default=False) ),
     ('init_sphere_exists', bpy.props.BoolProperty(name='Init sphere exists', description='Whether the sphere initially exists', default=False) ),
+    ('focal_length', bpy.props.FloatProperty(name='Focal Length', description='Camera focal length stored during scene preparation', default=50.0) ),
 ]
 
 # classes to register / unregister

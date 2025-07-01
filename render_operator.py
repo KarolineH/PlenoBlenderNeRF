@@ -41,6 +41,9 @@ class RenderScene(bpy.types.Operator):
         output_dir = bpy.path.clean_name(scene.dataset_name)
         output_path = os.path.join(scene.save_path, output_dir)
         os.makedirs(output_path, exist_ok=True)
+        
+        # Create log file using stored focal length from scene preparation
+        helper.save_log_file(scene, scene.focal_length, output_path)
                 
          # save PC as PLY file
         if scene.splats:
@@ -52,6 +55,33 @@ class RenderScene(bpy.types.Operator):
 
         self.write_metadata(scene, output_path)
 
+        # Additional export options based on user flags (performed after rendering)
+        if scene.export_meshes_per_frame:
+            print("Starting per-frame mesh export...")
+            self.report({'INFO'}, "Starting per-frame mesh export...")
+            ply_path = os.path.join(output_path, 'per_frame_plys')
+            if not os.path.exists(ply_path):
+                os.mkdir(ply_path)
+            helper.save_meshes_per_frame(scene, ply_path)
+            # This should export .ply meshes for each frame of the animation
+            print("Per-frame mesh export completed")
+            self.report({'INFO'}, "Per-frame mesh export completed")
+            
+        if scene.track_vertex_trajectories:
+            print("Starting vertex trajectory tracking...")
+            self.report({'INFO'}, "Starting vertex trajectory tracking...")
+            helper.track_vertices(scene, os.path.join(output_path, 'gt_traj.json'))
+            # This should track and export trajectories of all mesh vertices
+            print("Vertex trajectory tracking completed")
+            self.report({'INFO'}, "Vertex trajectory tracking completed")
+
+        # Start main rendering process
+        print("Starting main rendering process...")
+        self.report({'INFO'}, "Starting main rendering process...")
         self.render(scene, output_path) # RENDER SCENE
+        
+        # Final completion message
+        print("All separate export tasks completed successfully! Please wait for the main rendering to finish...")
+        self.report({'INFO'}, "All separate export tasks completed successfully! Please wait for the main rendering to finish...")
         
         return {'FINISHED'}
